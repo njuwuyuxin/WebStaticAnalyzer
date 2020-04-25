@@ -1,0 +1,10 @@
+Starting TemplateChecker check
+Time: 0min0sec
+End of TemplateChecker check
+-----------------------------------------------------------
+Starting CallGraphChecker check
+Time: 0min0sec
+End of CallGraphChecker check
+-----------------------------------------------------------
+-----------------------------------------------------------
+Total time: 0min0sec
