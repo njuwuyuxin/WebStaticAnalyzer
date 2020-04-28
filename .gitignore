@@ -1,1 +1,7 @@
 .vscode/
+.clangd/
+build/
+*.ast
+*.dot
+*.json
+time.txt

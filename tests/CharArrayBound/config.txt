@@ -1,0 +1,21 @@
+CheckerEnable
+{
+	CharArrayBound = true
+	CallGraphChecker = true
+}
+
+PrintLog
+{
+	level = 0
+	taintChecker = false
+	TemplateChecker = false
+	arrayBound = false
+	recursiveCall = false
+	divideChecker = false
+	memoryOPChecker = false
+}
+
+Framework
+{
+	queue_size = 100
+}
