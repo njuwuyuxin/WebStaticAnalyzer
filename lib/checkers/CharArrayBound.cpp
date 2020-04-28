@@ -5,16 +5,22 @@ static llvm::cl::OptionCategory ToolingSampleCategory("Tooling Sample");
 void CharArrayBound::check() {
   getEntryFunc();
   if (entryFunc != nullptr) {
-    FunctionDecl *funDecl = manager->getFunctionDecl(entryFunc);
-    std::cout << "The entry function is: "
-              << funDecl->getQualifiedNameAsString() << std::endl;
-    std::cout << "Here is its dump: " << std::endl;
-    funDecl->dump();
+    auto variables = entryFunc->getVariables();
+    for (auto &&v : variables) {
+      auto varDecl = manager->getVarDecl(v);
+      auto varType = varDecl->getType();
+      if (varType.getAsString().find("char ") != string::npos) {
+        auto val = varDecl->evaluateValue();
+        int len = val->getArrayInitializedElts();
+        for (int i = 0; i < len; i++) {
+          auto elt = val->getArrayInitializedElt(i).getInt();
+          cout << (char)elt.getExtValue();
+        }
+      }
+    }
+    cout << endl;
   }
-  LangOptions LangOpts;
-  LangOpts.CPlusPlus = true;
-  std::unique_ptr<CFG> &cfg = manager->getCFG(entryFunc);
-  cfg->dump(LangOpts, true);
+  // std::unique_ptr<CFG> &cfg = manager->getCFG(entryFunc);
 }
 
 void CharArrayBound::getEntryFunc() {
