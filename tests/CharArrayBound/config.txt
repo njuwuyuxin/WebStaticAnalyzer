@@ -1,7 +1,8 @@
 CheckerEnable
 {
 	CharArrayBound = true
-	CallGraphChecker = true
+	TemplateChecker = false
+	CallGraphChecker = false
 }
 
 PrintLog
@@ -18,4 +19,9 @@ PrintLog
 Framework
 {
 	queue_size = 100
+}
+
+TemplateChecker
+{
+	request_fun = 2
 }

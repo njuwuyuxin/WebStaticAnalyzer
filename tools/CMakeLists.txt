@@ -1,2 +1,1 @@
-add_subdirectory(TemplateChecker)
-add_subdirectory(CharArrayBound)
+add_subdirectory(Checker)

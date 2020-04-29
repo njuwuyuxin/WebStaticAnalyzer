@@ -8,6 +8,7 @@
 #include <llvm/Support/CommandLine.h>
 
 #include "checkers/CharArrayBound.h"
+#include "checkers/TemplateChecker.h"
 #include "framework/ASTManager.h"
 #include "framework/BasicChecker.h"
 #include "framework/CallGraph.h"
@@ -60,5 +61,51 @@ int main(int argc, const char *argv[]) {
         << endl;
   }
 
+  if (enable.find("TemplateChecker")->second == "true") {
+    process_file << "Starting TemplateChecker check" << endl;
+    clock_t start, end;
+    start = clock();
+
+    TemplateChecker checker(&resource, &manager, &call_graph, &configure);
+    checker.check();
+
+    end = clock();
+    unsigned sec = unsigned((end - start) / CLOCKS_PER_SEC);
+    unsigned min = sec / 60;
+    process_file << "Time: " << min << "min" << sec % 60 << "sec" << endl;
+    process_file
+        << "End of TemplateChecker "
+           "check\n-----------------------------------------------------------"
+        << endl;
+  }
+
+  if (enable.find("CallGraphChecker")->second == "true") {
+    process_file << "Starting CallGraphChecker check" << endl;
+    clock_t start, end;
+    start = clock();
+
+    call_graph.printCallGraph(std::cout);
+    std::fstream out("outTest.dot", ios::out);
+      if (out.is_open()) {
+      call_graph.writeDotFile(out);
+    }
+    out.close();
+
+    end = clock();
+    unsigned sec = unsigned((end - start) / CLOCKS_PER_SEC);
+    unsigned min = sec / 60;
+    process_file << "Time: " << min << "min" << sec % 60 << "sec" << endl;
+    process_file
+        << "End of CallGraphChecker "
+           "check\n-----------------------------------------------------------"
+        << endl;
+  }
+
+  endCTime = clock();
+  unsigned sec = unsigned((endCTime - startCTime) / CLOCKS_PER_SEC);
+  unsigned min = sec / 60;
+  process_file << "-----------------------------------------------------------"
+                  "\nTotal time: "
+               << min << "min" << sec % 60 << "sec" << endl;
   return 0;
 }
