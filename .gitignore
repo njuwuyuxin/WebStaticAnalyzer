@@ -1,4 +1,5 @@
 .vscode/
+cmake-build-debug/
 .clangd/
 build/
 *.ast
