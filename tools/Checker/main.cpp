@@ -19,6 +19,27 @@ using namespace clang;
 using namespace llvm;
 using namespace clang::tooling;
 
+#define check(checkerName)                                                     \
+  {                                                                            \
+    if (enable.find(#checkerName)->second == "true") {                         \
+      process_file << "Starting " #checkerName " check" << endl;               \
+      clock_t start, end;                                                      \
+      start = clock();                                                         \
+                                                                               \
+      checkerName checker(&resource, &manager, &call_graph, &configure);       \
+      checker.check();                                                         \
+                                                                               \
+      end = clock();                                                           \
+      unsigned sec = unsigned((end - start) / CLOCKS_PER_SEC);                 \
+      unsigned min = sec / 60;                                                 \
+      process_file << "Time: " << min << "min" << sec % 60 << "sec" << endl;   \
+      process_file << "End of " #checkerName " "                               \
+                      "check\n-----------------------------------------------" \
+                      "------------"                                           \
+                   << endl;                                                    \
+    }                                                                          \
+  }
+
 int main(int argc, const char *argv[]) {
   ofstream process_file("time.txt");
   if (!process_file.is_open()) {
@@ -43,41 +64,8 @@ int main(int argc, const char *argv[]) {
 
   Logger::configure(configure);
 
-  if (enable.find("CharArrayBound")->second == "true") {
-    process_file << "Starting CharArrayBound check" << endl;
-    clock_t start, end;
-    start = clock();
-
-    CharArrayBound checker(&resource, &manager, &call_graph, &configure);
-    checker.check();
-
-    end = clock();
-    unsigned sec = unsigned((end - start) / CLOCKS_PER_SEC);
-    unsigned min = sec / 60;
-    process_file << "Time: " << min << "min" << sec % 60 << "sec" << endl;
-    process_file
-        << "End of CharArrayBound "
-           "check\n-----------------------------------------------------------"
-        << endl;
-  }
-
-  if (enable.find("TemplateChecker")->second == "true") {
-    process_file << "Starting TemplateChecker check" << endl;
-    clock_t start, end;
-    start = clock();
-
-    TemplateChecker checker(&resource, &manager, &call_graph, &configure);
-    checker.check();
-
-    end = clock();
-    unsigned sec = unsigned((end - start) / CLOCKS_PER_SEC);
-    unsigned min = sec / 60;
-    process_file << "Time: " << min << "min" << sec % 60 << "sec" << endl;
-    process_file
-        << "End of TemplateChecker "
-           "check\n-----------------------------------------------------------"
-        << endl;
-  }
+  check(CharArrayBound);
+  check(TemplateChecker);
 
   if (enable.find("CallGraphChecker")->second == "true") {
     process_file << "Starting CallGraphChecker check" << endl;
@@ -86,7 +74,7 @@ int main(int argc, const char *argv[]) {
 
     call_graph.printCallGraph(std::cout);
     std::fstream out("outTest.dot", ios::out);
-      if (out.is_open()) {
+    if (out.is_open()) {
       call_graph.writeDotFile(out);
     }
     out.close();
