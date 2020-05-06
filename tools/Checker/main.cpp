@@ -20,27 +20,6 @@ using namespace clang;
 using namespace llvm;
 using namespace clang::tooling;
 
-#define check(checkerName)                                                     \
-  {                                                                            \
-    if (enable.find(#checkerName)->second == "true") {                         \
-      process_file << "Starting " #checkerName " check" << endl;               \
-      clock_t start, end;                                                      \
-      start = clock();                                                         \
-                                                                               \
-      checkerName checker(&resource, &manager, &call_graph, &configure);       \
-      checker.check();                                                         \
-                                                                               \
-      end = clock();                                                           \
-      unsigned sec = unsigned((end - start) / CLOCKS_PER_SEC);                 \
-      unsigned min = sec / 60;                                                 \
-      process_file << "Time: " << min << "min" << sec % 60 << "sec" << endl;   \
-      process_file << "End of " #checkerName " "                               \
-                      "check\n-----------------------------------------------" \
-                      "------------"                                           \
-                   << endl;                                                    \
-    }                                                                          \
-  }
-
 int main(int argc, const char *argv[]) {
 
   clock_t startCTime, endCTime;
@@ -67,9 +46,6 @@ int main(int argc, const char *argv[]) {
   checker_manager.add_checker(&template_checker);
   checker_manager.add_checker(&char_array_bound);
   checker_manager.check_all();
-
-  // check(CharArrayBound);
-  // check(TemplateChecker);
 
   ofstream process_file("time.txt",ios::app);
   if (!process_file.is_open()) {
