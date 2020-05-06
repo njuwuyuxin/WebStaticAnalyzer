@@ -7,6 +7,7 @@
 #include <llvm-c/Target.h>
 #include <llvm/Support/CommandLine.h>
 
+#include "checkers/CheckerManager.h"
 #include "checkers/CharArrayBound.h"
 #include "checkers/TemplateChecker.h"
 #include "framework/ASTManager.h"
@@ -41,11 +42,7 @@ using namespace clang::tooling;
   }
 
 int main(int argc, const char *argv[]) {
-  ofstream process_file("time.txt");
-  if (!process_file.is_open()) {
-    cerr << "can't open time.txt\n";
-    return -1;
-  }
+
   clock_t startCTime, endCTime;
   startCTime = clock();
 
@@ -64,9 +61,21 @@ int main(int argc, const char *argv[]) {
 
   Logger::configure(configure);
 
-  check(CharArrayBound);
-  check(TemplateChecker);
+  CheckerManager checker_manager(&configure);
+  TemplateChecker template_checker(&resource, &manager, &call_graph, &configure,"TemplateChecker"); 
+  CharArrayBound char_array_bound(&resource, &manager, &call_graph, &configure,"CharArrayBound");
+  checker_manager.add_checker(&template_checker);
+  checker_manager.add_checker(&char_array_bound);
+  checker_manager.check_all();
 
+  // check(CharArrayBound);
+  // check(TemplateChecker);
+
+  ofstream process_file("time.txt",ios::app);
+  if (!process_file.is_open()) {
+    cerr << "can't open time.txt\n";
+    return -1;
+  }
   if (enable.find("CallGraphChecker")->second == "true") {
     process_file << "Starting CallGraphChecker check" << endl;
     clock_t start, end;
@@ -95,5 +104,6 @@ int main(int argc, const char *argv[]) {
   process_file << "-----------------------------------------------------------"
                   "\nTotal time: "
                << min << "min" << sec % 60 << "sec" << endl;
+  process_file.close();
   return 0;
 }

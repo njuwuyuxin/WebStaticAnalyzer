@@ -33,8 +33,8 @@ using namespace std;
 class CharArrayBound : public BasicChecker {
 public:
   CharArrayBound(ASTResource *resource, ASTManager *manager,
-                 CallGraph *call_graph, Config *configure)
-      : BasicChecker(resource, manager, call_graph, configure){};
+                 CallGraph *call_graph, Config *configure, string checkername)
+      : BasicChecker(resource, manager, call_graph, configure,checkername){};
   void check();
 
 private:
