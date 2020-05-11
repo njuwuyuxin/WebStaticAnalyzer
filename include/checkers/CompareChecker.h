@@ -5,6 +5,8 @@
 #include <sstream>
 #include <stack>
 #include <string>
+#include <vector>
+#include <algorithm>
 
 #include <clang/AST/AST.h>
 #include <clang/AST/ASTConsumer.h>
@@ -36,7 +38,11 @@ public:
     : BasicChecker(resource, manager, call_graph, configure,checkername){};
   void check();
 private:
+  static vector<string> Signed;
+  static vector<string> Unsigned;
+
   void getEntryFunc();
-  bool find(Stmt* stmt, ASTContext& context);
+  bool RecursiveFind(const Stmt* stmt, const ASTContext& context);
+  void printStmt(const Stmt* stmt, const SourceManager &sm);
   ASTFunction *entryFunc;
 };

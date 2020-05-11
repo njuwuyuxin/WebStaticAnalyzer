@@ -1,17 +1,34 @@
 #include "checkers/CompareChecker.h"
 
-bool CompareChecker::find(Stmt* stmt, ASTContext& context){
+vector<string> CompareChecker::Signed = {"short", "int", "long", "long long"};
+vector<string> CompareChecker::Unsigned = {"unsigned short", "unsigned int", "unsigned long", "unsigned long long"};
+
+void CompareChecker::printStmt(const Stmt* stmt, const SourceManager &sm){
+  //string filename = sm.getFilename(stmt->getBeginLoc());
+  string begin = stmt->getBeginLoc().printToString(sm);
+  cout << begin << endl;
+  LangOptions LangOpts;
+  LangOpts.CPlusPlus = true;
+  stmt->printPretty(outs(), nullptr, LangOpts);
+  cout << endl;
+}
+
+bool CompareChecker::RecursiveFind(const Stmt* stmt, const ASTContext& context){
   if(stmt != nullptr){
     if(dyn_cast<BinaryOperator>(stmt) && ((BinaryOperator*)stmt)->isComparisonOp()){
       BinaryOperator* bop = (BinaryOperator*)stmt;
-      Expr* lhs = bop->getLHS()->IgnoreImpCasts();
-      Expr* rhs = bop->getRHS()->IgnoreImpCasts();
-      // DeclRef
-      cout << lhs->getType().getAsString() << " " << rhs->getType().getAsString() << endl;
-      return true;
+      Expr* LHS = bop->getLHS()->IgnoreImpCasts();
+      Expr* RHS = bop->getRHS()->IgnoreImpCasts();
+      string Ltype = LHS->getType().getAsString();
+      string Rtype = RHS->getType().getAsString();
+      if((find(Signed.begin(), Signed.end(), Ltype) != Signed.end() && find(Unsigned.begin(), Unsigned.end(), Rtype) != Unsigned.end())
+      || (find(Signed.begin(), Signed.end(), Rtype) != Signed.end() && find(Unsigned.begin(), Unsigned.end(), Ltype) != Unsigned.end())){
+        printStmt(stmt, context.getSourceManager());
+        return true;
+      }
     }else{
       for(auto c : stmt->children()){
-        if(find(c, context)) break;
+        if(RecursiveFind(c, context)) break;
       }
     }
   }
@@ -22,17 +39,17 @@ void CompareChecker::check(){
   getEntryFunc();
   if(entryFunc != nullptr){
     FunctionDecl *funDecl = manager->getFunctionDecl(entryFunc);
-    //cout << "dump" << endl;
-    //funDecl->dump();
+    /*
     vector<ASTVariable *> variables = entryFunc->getVariables();
     for(auto v: variables){
       VarDecl* varDecl = manager->getVarDecl(v);
       QualType varType = varDecl->getType();
       cout << v->getName() << " " << varType.getAsString() << endl;
     }
-    Stmt* stmt = funDecl->getBody();
-    ASTContext& context = funDecl->getASTContext();
-    find(stmt, context);
+    */
+    const Stmt* stmt = funDecl->getBody();
+    const ASTContext& context = funDecl->getASTContext();
+    RecursiveFind(stmt, context);
     //stmt->dump();
   }
 }

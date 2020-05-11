@@ -1,8 +1,12 @@
 #include <iostream>
 using namespace std;
 
-int negone() { return -1; }
-unsigned int one() { return 1; }
+int negone() { 
+    return -1; 
+}
+unsigned int one() { 
+    return 1; 
+}
 
 int main(){
     short int a = -2;
