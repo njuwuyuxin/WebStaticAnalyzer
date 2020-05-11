@@ -8,6 +8,7 @@
 #include <llvm/Support/CommandLine.h>
 
 #include "checkers/CheckerManager.h"
+#include "checkers/CompareChecker.h"
 #include "checkers/CharArrayBound.h"
 #include "checkers/TemplateChecker.h"
 #include "framework/ASTManager.h"
@@ -43,8 +44,10 @@ int main(int argc, const char *argv[]) {
   CheckerManager checker_manager(&configure);
   TemplateChecker template_checker(&resource, &manager, &call_graph, &configure,"TemplateChecker"); 
   CharArrayBound char_array_bound(&resource, &manager, &call_graph, &configure,"CharArrayBound");
+  CompareChecker compare_checker(&resource, &manager, &call_graph, &configure, "CompareChecker");
   checker_manager.add_checker(&template_checker);
   checker_manager.add_checker(&char_array_bound);
+  checker_manager.add_checker(&compare_checker);
   checker_manager.check_all();
 
   ofstream process_file("time.txt",ios::app);
