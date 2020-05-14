@@ -35,7 +35,7 @@ public:
   TemplateChecker(ASTResource *resource, ASTManager *manager,
                   CallGraph *call_graph, Config *configure)
       : BasicChecker(resource, manager, call_graph, configure){};
-  void check();
+  vector<Defect> check();
 
 private:
   void getEntryFunc();

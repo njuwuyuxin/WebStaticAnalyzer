@@ -34,8 +34,9 @@ private:
 
 } // namespace
 
-void CharArrayBound::check() {
+vector<Defect> CharArrayBound::check() {
   std::vector<ASTFunction *> topLevelFuncs = call_graph->getTopLevelFunctions();
+  vector<Defect> defects;
   for (auto fun : topLevelFuncs) {
     const FunctionDecl *funDecl = manager->getFunctionDecl(fun);
     auto stmt = funDecl->getBody();
@@ -44,9 +45,10 @@ void CharArrayBound::check() {
     auto stmts = visitor.getStmts();
     auto &sm = funDecl->getASTContext().getSourceManager();
     for (auto &&s : stmts) {
-      printStmt(s, sm);
+      defects.push_back({s->getBeginLoc().printToString(sm)});
     }
   }
+  return defects;
 }
 
 void CharArrayBound::getEntryFunc() {

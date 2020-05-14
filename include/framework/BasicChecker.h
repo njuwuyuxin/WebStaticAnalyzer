@@ -1,9 +1,15 @@
 #ifndef BASIC_CHECKER_H
 #define BASIC_CHECKER_H
 
+#include <string>
+#include <vector>
 #include "ASTManager.h"
 #include "CallGraph.h"
 #include "Config.h"
+
+struct Defect {
+  std::string location;
+};
 
 class BasicChecker {
 public:
@@ -15,7 +21,7 @@ public:
   BasicChecker(ASTResource *resource, ASTManager *manager,
                CallGraph *call_graph, Config *configure);
 
-  virtual void check();
+  virtual std::vector<Defect> check() = 0;
 };
 
 #endif

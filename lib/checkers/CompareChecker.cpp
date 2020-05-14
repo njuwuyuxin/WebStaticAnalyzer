@@ -35,7 +35,7 @@ bool CompareChecker::RecursiveFind(const Stmt* stmt, const ASTContext& context){
   return false;
 }
 
-void CompareChecker::check(){
+vector<Defect> CompareChecker::check(){
   getEntryFunc();
   if(entryFunc != nullptr){
     FunctionDecl *funDecl = manager->getFunctionDecl(entryFunc);
@@ -52,6 +52,7 @@ void CompareChecker::check(){
     RecursiveFind(stmt, context);
     //stmt->dump();
   }
+  return vector<Defect>();
 }
 
 void CompareChecker::getEntryFunc() {

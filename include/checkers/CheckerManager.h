@@ -7,6 +7,11 @@
 using namespace std;
 using std::vector;
 
+struct Result {
+  string checkerName;
+  vector<Defect> defects;
+};
+
 class CheckerManager {
 public:
   CheckerManager(Config *conf);

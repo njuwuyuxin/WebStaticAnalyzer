@@ -64,7 +64,7 @@ set(CLANG_LIBS
 # define OTHER_LIBS: other libs to be used in link time
 set(OTHER_LIBS pthread z dl curses)
 
-include_directories(include ${LLVM_INCLUDE})
+include_directories(include ${LLVM_INCLUDE} third_party/rapidjson/include)
 link_directories(${LLVM_LIB})
 
 add_subdirectory(lib)

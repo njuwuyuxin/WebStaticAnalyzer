@@ -12,5 +12,3 @@ BasicChecker::BasicChecker(ASTResource *resource, ASTManager *manager,
   this->call_graph = call_graph;
   this->configure = configure;
 }
-
-void BasicChecker::check() {}
