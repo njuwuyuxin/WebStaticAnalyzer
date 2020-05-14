@@ -1,6 +1,7 @@
 CheckerEnable
 {
 	CharArrayBound = true
+	CompareChecker = false
 	TemplateChecker = false
 	CallGraphChecker = false
 }
