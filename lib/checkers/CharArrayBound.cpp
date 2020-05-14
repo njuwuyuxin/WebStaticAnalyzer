@@ -2,15 +2,6 @@
 
 namespace {
 
-static inline void printStmt(const Stmt *stmt, const SourceManager &sm) {
-  LangOptions LangOpts;
-  LangOpts.CPlusPlus = true;
-  stmt->getBeginLoc().print(outs(), sm);
-  cout << endl;
-  stmt->printPretty(outs(), nullptr, LangOpts);
-  cout << endl;
-}
-
 class CharArrayVisitor : public RecursiveASTVisitor<CharArrayVisitor> {
 public:
   bool VisitArraySubscriptExpr(ArraySubscriptExpr *E) {

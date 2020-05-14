@@ -41,7 +41,6 @@ void CheckerManager::check_all() {
 
   auto enable = configure->getOptionBlock("CheckerEnable");
 
-  vector<Result> results;
   for (auto checker : checkers) {
     if (enable.find(checker.second)->second == "true") {
       process_file << "Starting " + checker.second + " check" << endl;
