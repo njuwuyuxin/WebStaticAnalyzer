@@ -2,11 +2,16 @@
 #include <cstring>
 
 void foo() {
-  char str3[8] = "example";
+  char str[8] = "example";
 
   for (int i = 0; i <= 8; i++) {
-    printf("%c", str3[i]);
+    printf("%c", str[i]);
   }
+
+  str[7] = '\0';
+  str[8] = '\0';
+  7[str] = '\0';
+  8[str] = '\0';
 }
 
 int main() {

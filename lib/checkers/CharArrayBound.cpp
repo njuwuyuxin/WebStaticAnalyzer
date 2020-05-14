@@ -13,44 +13,39 @@ static inline void printStmt(const Stmt *stmt, const SourceManager &sm) {
 
 class CharArrayVisitor : public RecursiveASTVisitor<CharArrayVisitor> {
 public:
-  CharArrayVisitor(const ASTContext &ctx) : ctx(ctx) {}
-
   bool VisitArraySubscriptExpr(ArraySubscriptExpr *E) {
     if (E->getType().getAsString() == "char") {
-      printStmt(E, ctx.getSourceManager());
+      const VarDecl *vd = (VarDecl *)E->getBase()->getReferencedDeclOfCallee();
+      int len = vd->evaluateValue()->getArrayInitializedElts();
+      auto idx = E->getIdx();
+      Expr::EvalResult i;
+      if (!idx->EvaluateAsInt(i, vd->getASTContext()) || i.Val.getInt() > len) {
+        stmts.push_back(E);
+      }
     }
     return true;
   }
 
+  const vector<Stmt *> &getStmts() const { return stmts; }
+
 private:
-  const ASTContext &ctx;
+  vector<Stmt *> stmts;
 };
 
 } // namespace
 
 void CharArrayBound::check() {
-  // getEntryFunc();
-  // if (entryFunc != nullptr) {
-  //   auto variables = entryFunc->getVariables();
-  //   map<string, int> charArrs;
-  //   for (auto &&v : variables) {
-  //     auto varDecl = manager->getVarDecl(v);
-  //     auto varType = varDecl->getType();
-  //     if (varType.getAsString().find("char ") != string::npos) {
-  //       auto val = varDecl->evaluateValue();
-  //       int len = val->getArrayInitializedElts();
-  //       charArrs.insert(make_pair(varDecl->getNameAsString(), len));
-  //     }
-  //   }
-  // }
-
   std::vector<ASTFunction *> topLevelFuncs = call_graph->getTopLevelFunctions();
   for (auto fun : topLevelFuncs) {
     const FunctionDecl *funDecl = manager->getFunctionDecl(fun);
     auto stmt = funDecl->getBody();
-    const ASTContext &ctx = funDecl->getASTContext();
-    CharArrayVisitor visitor(ctx);
+    CharArrayVisitor visitor;
     visitor.TraverseStmt(stmt);
+    auto stmts = visitor.getStmts();
+    auto &sm = funDecl->getASTContext().getSourceManager();
+    for (auto &&s : stmts) {
+      printStmt(s, sm);
+    }
   }
 }
 
