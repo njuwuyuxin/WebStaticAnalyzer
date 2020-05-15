@@ -2,9 +2,13 @@
 cmake-build-debug/
 .clangd/
 build/
+CMakeFiles/
 *.ast
 *.dot
 *.json
 *.sh
+*.cmake
+*.o
+*.a
 time.txt
 config.txt
