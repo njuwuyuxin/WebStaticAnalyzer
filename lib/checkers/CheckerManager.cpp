@@ -1,29 +1,24 @@
 #include "checkers/CheckerManager.h"
 #include <utility>
-#include "rapidjson/writer.h"
+#include "rapidjson/prettywriter.h"
 #include "rapidjson/stringbuffer.h"
 
 using namespace rapidjson;
 
-string Serialize(Result r) {
-  StringBuffer s;
-  Writer<StringBuffer> writer(s);
-
+void Serialize(PrettyWriter<StringBuffer> &writer, Result r) {
   writer.StartObject();
   writer.Key("checkerName");
-  writer.String(r.checkerName.c_str());
+  writer.String(r.checkerName);
   writer.Key("defects");
   writer.StartArray();
   for (auto &&d : r.defects) {
     writer.StartObject();
     writer.Key("location");
-    writer.String(d.location.c_str());
+    writer.String(d.location);
     writer.EndObject();
   }
   writer.EndArray();
   writer.EndObject();
-
-  return s.GetString();
 }
 
 CheckerManager::CheckerManager(Config *conf) { configure = conf; }
@@ -41,13 +36,17 @@ void CheckerManager::check_all() {
 
   auto enable = configure->getOptionBlock("CheckerEnable");
 
+  StringBuffer s;
+  PrettyWriter<StringBuffer> writer(s);
+  writer.StartArray();
+
   for (auto checker : checkers) {
     if (enable.find(checker.second)->second == "true") {
       process_file << "Starting " + checker.second + " check" << endl;
       clock_t start, end;
       start = clock();
 
-      cout << Serialize({checker.second, checker.first->check()}) << endl;
+      Serialize(writer, {checker.second, checker.first->check()});
 
       end = clock();
       unsigned sec = unsigned((end - start) / CLOCKS_PER_SEC);
@@ -61,5 +60,9 @@ void CheckerManager::check_all() {
           << endl;
     }
   }
+
+  writer.EndArray();
+  cout << s.GetString() << endl;
+
   process_file.close();
 }

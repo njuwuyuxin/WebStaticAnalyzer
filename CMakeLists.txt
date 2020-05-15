@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.10)
 project(seexperiment)
 
 set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti -DRAPIDJSON_HAS_STDSTRING=1")
 
 if(DEFINED LLVM_PREFIX)
   set(LLVM_CONFIG ${LLVM_PREFIX}/bin/llvm-config)
