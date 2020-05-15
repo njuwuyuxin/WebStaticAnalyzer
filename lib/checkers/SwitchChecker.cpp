@@ -71,13 +71,12 @@ public:
           if(enumElements.size()!=0){
             Defect df;
             df.location = E->getBeginLoc().printToString(ctx.getSourceManager());
+            df.info = "存在尚未覆盖的枚举类型\n";
+            for(auto i:enumElements){
+              df.info += i;
+              df.info += " ";
+            }
             defects.push_back(df);
-            // cout<<E->getBeginLoc().printToString(ctx.getSourceManager())<<endl;
-            // cout<<"存在尚未覆盖的枚举类型"<<endl;
-            // for(auto i:enumElements){
-            //   cout<<i<<" ";
-            // }
-            // cout<<endl;
           }
           break;
         }

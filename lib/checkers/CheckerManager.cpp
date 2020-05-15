@@ -15,6 +15,8 @@ void Serialize(PrettyWriter<StringBuffer> &writer, Result r) {
     writer.StartObject();
     writer.Key("location");
     writer.String(d.location);
+    writer.Key("info");
+    writer.String(d.info);
     writer.EndObject();
   }
   writer.EndArray();

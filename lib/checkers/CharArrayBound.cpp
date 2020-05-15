@@ -36,7 +36,10 @@ vector<Defect> CharArrayBound::check() {
     auto stmts = visitor.getStmts();
     auto &sm = funDecl->getASTContext().getSourceManager();
     for (auto &&s : stmts) {
-      defects.push_back({s->getBeginLoc().printToString(sm)});
+      Defect d;
+      d.location = s->getBeginLoc().printToString(sm);
+      d.info = "";
+      defects.push_back(d);
     }
   }
   return defects;

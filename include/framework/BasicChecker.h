@@ -9,6 +9,7 @@
 
 struct Defect {
   std::string location;
+  std::string info;
 };
 
 class BasicChecker {
