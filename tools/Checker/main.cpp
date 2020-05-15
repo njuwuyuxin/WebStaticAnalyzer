@@ -10,6 +10,7 @@
 #include "checkers/CharArrayBound.h"
 #include "checkers/CheckerManager.h"
 #include "checkers/CompareChecker.h"
+#include "checkers/SwitchChecker.h"
 #include "checkers/TemplateChecker.h"
 #include "checkers/ZeroChecker.h"
 #include "framework/ASTManager.h"
@@ -48,10 +49,12 @@ int main(int argc, const char *argv[]) {
   CharArrayBound char_array_bound(&resource, &manager, &call_graph, &configure);
   CompareChecker compare_checker(&resource, &manager, &call_graph, &configure);
   ZeroChecker zero_checker(&resource, &manager, &call_graph, &configure);
+  SwitchChecker switch_checker(&resource, &manager, &call_graph, &configure);
   checker_manager.add_checker(&template_checker, "TemplateChecker");
   checker_manager.add_checker(&char_array_bound, "CharArrayBound");
   checker_manager.add_checker(&compare_checker, "CompareChecker");
   checker_manager.add_checker(&zero_checker, "ZeroChecker");
+  checker_manager.add_checker(&switch_checker, "SwitchChecker");
   checker_manager.check_all();
 
   ofstream process_file("time.txt", ios::app);
