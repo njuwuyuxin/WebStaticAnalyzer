@@ -26,12 +26,7 @@ public:
   SwitchVisitor(const ASTContext &ctx,const std::vector<EnumDecl*> eds) : ctx(ctx),EDs(eds) {}
 
   bool VisitSwitchStmt(SwitchStmt *E) {
-    // printStmt(E, ctx.getSourceManager());
     Expr* conditionExpr = E->getCond();
-    // for(EnumDecl* ED:EDs){
-    //   ED->dump();
-    // }
-
     if(conditionExpr!=NULL){
       Decl* cond_decl = conditionExpr->getReferencedDeclOfCallee();
       TypeDecl* TD = (TypeDecl*)(cond_decl);
@@ -74,21 +69,19 @@ public:
           }
           //若enumElements非空，则说明有枚举情况尚未覆盖
           if(enumElements.size()!=0){
-            cout<<E->getBeginLoc().printToString(ctx.getSourceManager())<<endl;
-            cout<<"存在尚未覆盖的枚举类型"<<endl;
-            for(auto i:enumElements){
-              cout<<i<<" ";
-            }
-            cout<<endl;
-          } 
+            Defect df;
+            df.location = E->getBeginLoc().printToString(ctx.getSourceManager());
+            defects.push_back(df);
+            // cout<<E->getBeginLoc().printToString(ctx.getSourceManager())<<endl;
+            // cout<<"存在尚未覆盖的枚举类型"<<endl;
+            // for(auto i:enumElements){
+            //   cout<<i<<" ";
+            // }
+            // cout<<endl;
+          }
+          break;
         }
       }
-      
-      
-      // cout<<conditionVar->getType().getAsString()<<endl;
-      // auto child = conditionVar->child_begin();
-      // child->dump();
-      // cout<<"condition isn't null!!!"<<endl;
     }
     else{
       cout<<"conditionVar is null"<<endl;
@@ -97,23 +90,32 @@ public:
     return true;
   }
 
+  std::vector<Defect> getDefects(){
+    return defects;
+  }
+
 private:
   const ASTContext &ctx;
   const std::vector<EnumDecl*> EDs;
+  std::vector<Defect> defects;
 };
 
 vector<Defect> SwitchChecker::check(){
   std::vector<ASTFunction *> topLevelFuncs = call_graph->getTopLevelFunctions();
   std::vector<EnumDecl*> topLevelEnums = resource->getEnums();
+  std::vector<Defect> defects;
   for (auto fun : topLevelFuncs) {
     const FunctionDecl *funDecl = manager->getFunctionDecl(fun);
     auto stmt = funDecl->getBody();
     const ASTContext &ctx = funDecl->getASTContext();
     // stmt->dumpColor();
+
     SwitchVisitor visitor(ctx,topLevelEnums);
     visitor.TraverseStmt(stmt);
+    std::vector<Defect> dfs = visitor.getDefects();
+    defects.insert(defects.end(),dfs.begin(),dfs.end());
   }
-  return vector<Defect>();
+  return defects;
 }
 
 void SwitchChecker::getEntryFunc() {
