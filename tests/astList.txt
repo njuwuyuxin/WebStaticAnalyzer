@@ -1,4 +1,0 @@
-CharArrayBound/example.ast
-CompareChecker/example.ast
-SwitchChecker/example.ast
-ZeroChecker/example.ast
