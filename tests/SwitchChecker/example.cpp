@@ -4,7 +4,7 @@ enum Week {Mon,Tue,Wed};
 enum Month {Jan,Feb,Mar,Apr,May,June,July};
 
 
-int main(){
+int TestSwitch(){
 	int a=0;
 	Week week=Mon;
 	Month month=Jan;

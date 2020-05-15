@@ -8,7 +8,7 @@ unsigned int one() {
     return 1; 
 }
 
-int main(){
+int TestCompare(){
     short int a = -2;
     long int b = 7;
     unsigned int c = 5;

@@ -14,7 +14,7 @@ void foo() {
   8[str] = '\0';
 }
 
-int main() {
+int TestCharArrayBound() {
 
   char str[8] = "example";
   char str2[8] = "example";
