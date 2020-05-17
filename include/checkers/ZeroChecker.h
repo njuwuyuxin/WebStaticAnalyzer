@@ -5,6 +5,7 @@
 #include <sstream>
 #include <stack>
 #include <string>
+#include <vector>
 
 #include <clang/AST/AST.h>
 #include <clang/AST/ASTConsumer.h>
@@ -30,18 +31,13 @@ using namespace clang::driver;
 using namespace clang::tooling;
 using namespace std;
 
-class TemplateChecker : public BasicChecker {
+class ZeroChecker : public BasicChecker {
 public:
-  TemplateChecker(ASTResource *resource, ASTManager *manager,
-                  CallGraph *call_graph, Config *configure)
+  ZeroChecker(ASTResource *resource, ASTManager *manager,
+                CallGraph *call_graph, Config *configure)
       : BasicChecker(resource, manager, call_graph, configure){};
   vector<Defect> check();
 
 private:
-  void getEntryFunc();
-  void readConfig();
   ASTFunction *entryFunc;
-
-  int request_fun;
-  int maxPathInFun;
 };

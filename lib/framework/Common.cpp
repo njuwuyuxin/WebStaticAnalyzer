@@ -36,13 +36,21 @@ public:
     }
     return true;
   }
+  bool TraverseEnumDecl(EnumDecl *ED) {
+    if (ED && ED->isThisDeclarationADefinition()) {
+      enums.push_back(ED);
+    }
+    return true;
+  }
 
   bool TraverseStmt(Stmt *S) { return true; }
 
   const std::vector<FunctionDecl *> &getFunctions() const { return functions; }
+  const std::vector<EnumDecl *> &getEnums() const { return enums; }
 
 private:
   std::vector<FunctionDecl *> functions;
+  std::vector<EnumDecl *> enums;
 };
 
 class ASTVariableLoad : public RecursiveASTVisitor<ASTVariableLoad> {
@@ -119,6 +127,15 @@ std::vector<FunctionDecl *> getFunctions(ASTContext &Context) {
   ASTFunctionLoad load;
   load.HandleTranslationUnit(Context);
   return load.getFunctions();
+}
+
+/**
+ * get all enums's decl from an ast context.
+ */
+std::vector<EnumDecl *> getEnums(ASTContext &Context) {
+  ASTFunctionLoad load;
+  load.HandleTranslationUnit(Context);
+  return load.getEnums();
 }
 
 /**

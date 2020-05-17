@@ -7,10 +7,12 @@
 #include <llvm-c/Target.h>
 #include <llvm/Support/CommandLine.h>
 
+#include "checkers/CharArrayBound.h"
 #include "checkers/CheckerManager.h"
 #include "checkers/CompareChecker.h"
-#include "checkers/CharArrayBound.h"
+#include "checkers/SwitchChecker.h"
 #include "checkers/TemplateChecker.h"
+#include "checkers/ZeroChecker.h"
 #include "framework/ASTManager.h"
 #include "framework/BasicChecker.h"
 #include "framework/CallGraph.h"
@@ -42,15 +44,20 @@ int main(int argc, const char *argv[]) {
   Logger::configure(configure);
 
   CheckerManager checker_manager(&configure);
-  TemplateChecker template_checker(&resource, &manager, &call_graph, &configure,"TemplateChecker"); 
-  CharArrayBound char_array_bound(&resource, &manager, &call_graph, &configure,"CharArrayBound");
-  CompareChecker compare_checker(&resource, &manager, &call_graph, &configure, "CompareChecker");
-  checker_manager.add_checker(&template_checker);
-  checker_manager.add_checker(&char_array_bound);
-  checker_manager.add_checker(&compare_checker);
+  TemplateChecker template_checker(&resource, &manager, &call_graph,
+                                   &configure);
+  CharArrayBound char_array_bound(&resource, &manager, &call_graph, &configure);
+  CompareChecker compare_checker(&resource, &manager, &call_graph, &configure);
+  ZeroChecker zero_checker(&resource, &manager, &call_graph, &configure);
+  SwitchChecker switch_checker(&resource, &manager, &call_graph, &configure);
+  checker_manager.add_checker(&template_checker, "TemplateChecker");
+  checker_manager.add_checker(&char_array_bound, "CharArrayBound");
+  checker_manager.add_checker(&compare_checker, "CompareChecker");
+  checker_manager.add_checker(&zero_checker, "ZeroChecker");
+  checker_manager.add_checker(&switch_checker, "SwitchChecker");
   checker_manager.check_all();
 
-  ofstream process_file("time.txt",ios::app);
+  ofstream process_file("time.txt", ios::app);
   if (!process_file.is_open()) {
     cerr << "can't open time.txt\n";
     return -1;

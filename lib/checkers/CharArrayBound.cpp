@@ -1,53 +1,48 @@
 #include "checkers/CharArrayBound.h"
 
-static inline void printStmt(const Stmt *stmt, const SourceManager &sm) {
-  int prefixLen = sm.getFilename(stmt->getBeginLoc()).size() + 1;
-  string begin = stmt->getBeginLoc().printToString(sm);
-  string end = stmt->getEndLoc().printToString(sm);
-  LangOptions LangOpts;
-  LangOpts.CPlusPlus = true;
-  cout << begin.substr(prefixLen, begin.size() - prefixLen) << ", "
-       << end.substr(prefixLen, end.size() - prefixLen) << endl;
-  stmt->printPretty(outs(), nullptr, LangOpts);
-  cout << endl;
-}
+namespace {
 
-static inline bool findVisit(const Stmt *stmt, const ASTContext &ctx) {
-  if (stmt != nullptr) {
-    if (ArraySubscriptExpr::classof(stmt) &&
-        ((Expr *)stmt)->getType().getAsString() == "char") {
-      return true;
-    } else {
-      for (auto &&s : stmt->children()) {
-        if (findVisit(s, ctx)) {
-          printStmt(stmt, ctx.getSourceManager());
-          break;
-        }
+class CharArrayVisitor : public RecursiveASTVisitor<CharArrayVisitor> {
+public:
+  bool VisitArraySubscriptExpr(ArraySubscriptExpr *E) {
+    if (E->getType().getAsString() == "char") {
+      const VarDecl *vd = (VarDecl *)E->getBase()->getReferencedDeclOfCallee();
+      int len = vd->evaluateValue()->getArrayInitializedElts();
+      auto idx = E->getIdx();
+      Expr::EvalResult i;
+      if (!idx->EvaluateAsInt(i, vd->getASTContext()) || i.Val.getInt() > len) {
+        stmts.push_back(E);
       }
     }
+    return true;
   }
-  return false;
-}
 
-void CharArrayBound::check() {
-  getEntryFunc();
-  if (entryFunc != nullptr) {
-    auto variables = entryFunc->getVariables();
-    map<string, int> charArrs;
-    for (auto &&v : variables) {
-      auto varDecl = manager->getVarDecl(v);
-      auto varType = varDecl->getType();
-      if (varType.getAsString().find("char ") != string::npos) {
-        auto val = varDecl->evaluateValue();
-        int len = val->getArrayInitializedElts();
-        charArrs.insert(make_pair(varDecl->getNameAsString(), len));
-      }
-    }
-    auto funDecl = manager->getFunctionDecl(entryFunc);
+  const vector<Stmt *> &getStmts() const { return stmts; }
+
+private:
+  vector<Stmt *> stmts;
+};
+
+} // namespace
+
+vector<Defect> CharArrayBound::check() {
+  std::vector<ASTFunction *> topLevelFuncs = call_graph->getTopLevelFunctions();
+  vector<Defect> defects;
+  for (auto fun : topLevelFuncs) {
+    const FunctionDecl *funDecl = manager->getFunctionDecl(fun);
     auto stmt = funDecl->getBody();
-    const ASTContext &ctx = funDecl->getASTContext();
-    findVisit(stmt, ctx);
+    CharArrayVisitor visitor;
+    visitor.TraverseStmt(stmt);
+    auto stmts = visitor.getStmts();
+    auto &sm = funDecl->getASTContext().getSourceManager();
+    for (auto &&s : stmts) {
+      Defect d;
+      d.location = s->getBeginLoc().printToString(sm);
+      d.info = "";
+      defects.push_back(d);
+    }
   }
+  return defects;
 }
 
 void CharArrayBound::getEntryFunc() {

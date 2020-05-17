@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <fstream>
 #include <iostream>
 #include <list>
@@ -6,7 +7,6 @@
 #include <stack>
 #include <string>
 #include <vector>
-#include <algorithm>
 
 #include <clang/AST/AST.h>
 #include <clang/AST/ASTConsumer.h>
@@ -32,17 +32,19 @@ using namespace clang::driver;
 using namespace clang::tooling;
 using namespace std;
 
-class CompareChecker: public BasicChecker{
+class CompareChecker : public BasicChecker {
 public:
-  CompareChecker(ASTResource *resource, ASTManager *manager, CallGraph *call_graph, Config *configure, string checkername)
-    : BasicChecker(resource, manager, call_graph, configure,checkername){};
-  void check();
+  CompareChecker(ASTResource *resource, ASTManager *manager,
+                 CallGraph *call_graph, Config *configure)
+      : BasicChecker(resource, manager, call_graph, configure){};
+  vector<Defect> check();
+
 private:
   static vector<string> Signed;
   static vector<string> Unsigned;
 
   void getEntryFunc();
-  bool RecursiveFind(const Stmt* stmt, const ASTContext& context);
-  void printStmt(const Stmt* stmt, const SourceManager &sm);
+  bool RecursiveFind(const Stmt *stmt, const ASTContext &context);
+  void printStmt(const Stmt *stmt, const SourceManager &sm);
   ASTFunction *entryFunc;
 };

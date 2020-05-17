@@ -5,6 +5,8 @@
 #include <sstream>
 #include <stack>
 #include <string>
+#include <vector>
+#include <algorithm>
 
 #include <clang/AST/AST.h>
 #include <clang/AST/ASTConsumer.h>
@@ -29,19 +31,17 @@ using namespace llvm;
 using namespace clang::driver;
 using namespace clang::tooling;
 using namespace std;
-
-class TemplateChecker : public BasicChecker {
+class SwitchChecker: public BasicChecker{
 public:
-  TemplateChecker(ASTResource *resource, ASTManager *manager,
-                  CallGraph *call_graph, Config *configure)
-      : BasicChecker(resource, manager, call_graph, configure){};
+  SwitchChecker(ASTResource *resource, ASTManager *manager, CallGraph *call_graph, Config *configure)
+    : BasicChecker(resource, manager, call_graph, configure){};
   vector<Defect> check();
-
 private:
-  void getEntryFunc();
-  void readConfig();
-  ASTFunction *entryFunc;
+  static vector<string> Signed;
+  static vector<string> Unsigned;
 
-  int request_fun;
-  int maxPathInFun;
+  void getEntryFunc();
+  bool RecursiveFind(const Stmt* stmt, const ASTContext& context);
+  void printStmt(const Stmt* stmt, const SourceManager &sm);
+  ASTFunction *entryFunc;
 };

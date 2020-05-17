@@ -19,6 +19,10 @@ std::vector<ASTFile *> ASTResource::getASTFiles() const {
   return ASTFiles;
 }
 
+std::vector<EnumDecl *> ASTResource::getEnums() const {
+  return Enums;
+}
+
 void ASTResource::buildUseFunctions() {
   for (ASTFunction *AF : ASTFunctions) {
     if (AF->isUse()) {
@@ -49,6 +53,10 @@ ASTVariable *ASTResource::addASTVariable(VarDecl *VD, ASTFunction *F) {
   ASTVariables.push_back(V);
   F->addVariable(V);
   return V;
+}
+
+void ASTResource::addEnumDecl(EnumDecl* ED){
+  Enums.push_back(ED);
 }
 
 ASTResource::~ASTResource() {
@@ -130,6 +138,13 @@ ASTManager::ASTManager(std::vector<std::string> &ASTs, ASTResource &resource,
         resource.addASTVariable(VD, F);
       }
     }
+
+    std::vector<EnumDecl *> enums =
+        common::getEnums(AU->getASTContext());
+    for(EnumDecl *ED: enums){
+      resource.addEnumDecl(ED);
+    }
+    
     loadASTUnit(std::move(AU));
   }
   resource.buildUseFunctions();
