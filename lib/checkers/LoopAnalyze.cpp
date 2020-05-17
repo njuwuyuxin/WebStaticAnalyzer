@@ -16,8 +16,13 @@ void LoopAnlyze::getEntryFunc()
     return;
 }
 
-void LoopAnalyze::check()
+std::vector<Defect> LoopAnalyze::check()
 {
     getEntryFunc();
     //TODO
+
+    std::vector<Defect> result = new std::vector<Defect>; 
+
+
+    return result;
 }
