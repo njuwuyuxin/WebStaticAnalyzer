@@ -33,8 +33,8 @@ using namespace std;
 class LoopAnalyze : public BasicChecker {
 public:
   LoopAnalyze(ASTResource *resource, ASTManager *manager,
-                 CallGraph *call_graph, Config *configure, string checkername)
-      : BasicChecker(resource, manager, call_graph, configure,checkername){};
+                 CallGraph *call_graph, Config *configure)
+      : BasicChecker(resource, manager, call_graph, configure){};
   void check();
 
 private:
