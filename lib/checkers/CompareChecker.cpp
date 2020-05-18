@@ -61,10 +61,11 @@ bool CompareChecker::RecursiveFind(const Stmt* stmt, const ASTContext& context){
 }
 
 vector<Defect> CompareChecker::check(){
-  getEntryFunc();
+  //getEntryFunc();
+  vector<ASTFunction *> topLevelFuncs = call_graph->getTopLevelFunctions();
   vector<Defect> defects;
-  if(entryFunc != nullptr){
-    FunctionDecl *funDecl = manager->getFunctionDecl(entryFunc);
+  for(auto func : topLevelFuncs){
+    FunctionDecl *funDecl = manager->getFunctionDecl(func);
     Stmt* stmt = funDecl->getBody();
     const ASTContext& context = funDecl->getASTContext();
     CompareVisitor visitor;
