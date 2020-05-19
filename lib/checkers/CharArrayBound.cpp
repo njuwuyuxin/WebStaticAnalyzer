@@ -26,9 +26,9 @@ private:
 } // namespace
 
 vector<Defect> CharArrayBound::check() {
-  std::vector<ASTFunction *> topLevelFuncs = call_graph->getTopLevelFunctions();
+  std::vector<ASTFunction *> functions = resource->getFunctions();
   vector<Defect> defects;
-  for (auto fun : topLevelFuncs) {
+  for (auto fun : functions) {
     const FunctionDecl *funDecl = manager->getFunctionDecl(fun);
     auto stmt = funDecl->getBody();
     CharArrayVisitor visitor;
@@ -38,7 +38,7 @@ vector<Defect> CharArrayBound::check() {
     for (auto &&s : stmts) {
       Defect d;
       d.location = s->getBeginLoc().printToString(sm);
-      d.info = "";
+      d.info = R"(通过下标访问字符数组'\0'之后的内容)";
       defects.push_back(d);
     }
   }

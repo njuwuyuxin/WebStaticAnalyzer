@@ -27,5 +27,7 @@ int TestCharArrayBound() {
     str2[i] = 0;
   }
 
+  foo();
+
   return 0;
 }
