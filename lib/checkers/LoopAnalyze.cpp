@@ -1,6 +1,6 @@
 #include "checkers/LoopAnalyze.h"
 
-void LoopAnlyze::getEntryFunc()
+void LoopAnalyze::getEntryFunc()
 {
     std::vector<ASTFunction *> topLevelFuncs = call_graph->getTopLevelFunctions();
     for (auto fun : topLevelFuncs)
@@ -8,11 +8,11 @@ void LoopAnlyze::getEntryFunc()
         const FunctionDecl *funDecl = manager->getFunctionDecl(fun);
         if (funDecl->getQualifiedNameAsString() == "main")
         {
-            entryFunc = fun;
+            this->entryFunc = fun;
             return;
         }
     }
-    entryFunc = nullptr;
+    this->entryFunc = nullptr;
     return;
 }
 
@@ -21,7 +21,7 @@ std::vector<Defect> LoopAnalyze::check()
     getEntryFunc();
     //TODO
 
-    std::vector<Defect> result = new std::vector<Defect>; 
+    std::vector<Defect> result; 
 
 
     return result;
