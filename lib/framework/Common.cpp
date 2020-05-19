@@ -42,15 +42,23 @@ public:
     }
     return true;
   }
+  bool TraverseVarDecl(VarDecl *VD){
+    if(VD && VD->isThisDeclarationADefinition()){
+      vars.push_back(VD);
+    }
+    return true;
+  }
 
   bool TraverseStmt(Stmt *S) { return true; }
 
   const std::vector<FunctionDecl *> &getFunctions() const { return functions; }
   const std::vector<EnumDecl *> &getEnums() const { return enums; }
+  const std::vector<VarDecl *> &getVarDecl() const { return vars; }
 
 private:
   std::vector<FunctionDecl *> functions;
   std::vector<EnumDecl *> enums;
+  std::vector<VarDecl *> vars;
 };
 
 class ASTVariableLoad : public RecursiveASTVisitor<ASTVariableLoad> {
@@ -137,6 +145,15 @@ std::vector<EnumDecl *> getEnums(ASTContext &Context) {
   load.HandleTranslationUnit(Context);
   return load.getEnums();
 }
+
+/**
+ * get all comparison operator from an ast context.
+ */
+ std::vector<VarDecl *> getVarDecl(ASTContext &Context){
+   ASTFunctionLoad load;
+   load.HandleTranslationUnit(Context);
+   return load.getVarDecl();
+ }
 
 /**
  * get all variables' decl of a function

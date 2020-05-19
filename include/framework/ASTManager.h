@@ -23,6 +23,7 @@ public:
   const std::vector<ASTFunction *> &getFunctions(bool use = true) const;
   std::vector<ASTFile *> getASTFiles() const;
   std::vector<EnumDecl *> getEnums() const;
+  std::vector<VarDecl *> getVarDecl() const;
 
   friend class ASTManager;
 
@@ -32,6 +33,7 @@ private:
   std::vector<ASTFunction *> ASTFunctions;
   std::vector<ASTVariable *> ASTVariables;
   std::vector<EnumDecl *> Enums;
+  std::vector<VarDecl *> VarDecls;
 
   std::vector<ASTFunction *> useASTFunctions;
 
@@ -41,6 +43,7 @@ private:
   ASTFunction *addASTFunction(FunctionDecl *FD, ASTFile *AF, bool use = true);
   ASTVariable *addASTVariable(VarDecl *VD, ASTFunction *F);
   void addEnumDecl(EnumDecl* ED);
+  void addVarDecl(VarDecl* VD);
 };
 
 /**

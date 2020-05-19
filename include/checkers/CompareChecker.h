@@ -40,11 +40,13 @@ public:
   vector<Defect> check();
 
 private:
-  static vector<string> Signed;
-  static vector<string> Unsigned;
+  vector<Defect> defects;
+  void push_defect(Stmt* s, const ASTContext& context);
+  //static vector<string> Signed;
+  //static vector<string> Unsigned;
 
-  void getEntryFunc();
-  bool RecursiveFind(const Stmt *stmt, const ASTContext &context);
-  void printStmt(const Stmt *stmt, const SourceManager &sm);
-  ASTFunction *entryFunc;
+  //void getEntryFunc();
+  //bool RecursiveFind(const Stmt *stmt, const ASTContext &context);
+  //void printStmt(const Stmt *stmt, const SourceManager &sm);
+  //ASTFunction *entryFunc;
 };

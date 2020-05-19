@@ -26,6 +26,7 @@ std::unique_ptr<ASTUnit> loadFromASTFile(std::string AST);
 
 std::vector<FunctionDecl *> getFunctions(ASTContext &Context);
 std::vector<EnumDecl *> getEnums(ASTContext &Context);
+std::vector<VarDecl *> getVarDecl(ASTContext &Context);
 std::vector<VarDecl *> getVariables(FunctionDecl *FD);
 
 std::vector<FunctionDecl *> getCalledFunctions(FunctionDecl *FD);

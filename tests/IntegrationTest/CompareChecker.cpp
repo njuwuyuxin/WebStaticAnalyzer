@@ -1,8 +1,15 @@
 #include <iostream>
 using namespace std;
 
+int x = -1;
+unsigned int y = 1;
+int z = x > y ? 1 : 0;
+
 int negone() { 
-    return -1; 
+    if(x > y)
+      return -1; 
+    else
+      return 1;
 }
 unsigned int one() { 
     return 1; 
