@@ -2,11 +2,7 @@
 #include <cstring>
 
 void foo() {
-  char str[8] = "example";
-
-  for (int i = 0; i <= 8; i++) {
-    printf("%c", str[i]);
-  }
+  char str[10] = "example";
 
   str[7] = '\0';
   str[8] = '\0';
@@ -16,15 +12,10 @@ void foo() {
 
 int TestCharArrayBound() {
 
-  char str[8] = "example";
-  char str2[8] = "example";
+  char str[10] = "example";
 
-  for (int i = 0; i <= strlen(str); i++) {
-    str[i] = str[i + 1];
-  }
-
-  for (int i = 0; i <= 8; i++) {
-    str2[i] = 0;
+  for (int i = 0; i < sizeof(str); i++) {
+    str[i] = 0;
   }
 
   foo();

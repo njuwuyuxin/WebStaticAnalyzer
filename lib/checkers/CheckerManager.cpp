@@ -2,6 +2,7 @@
 #include <utility>
 #include "rapidjson/prettywriter.h"
 #include "rapidjson/stringbuffer.h"
+#include <assert.h>
 
 using namespace rapidjson;
 
@@ -62,9 +63,19 @@ void CheckerManager::check_all() {
           << endl;
     }
   }
-
-  writer.EndArray();
-  cout << s.GetString() << endl;
-
   process_file.close();
+  writer.EndArray();
+
+  time_t t = time(0);
+  char ch[64];
+  strftime(ch, sizeof(ch), "%Y-%m-%d %H-%M-%S", localtime(&t)); //年-月-日 时-分-秒
+  string repo(ch);
+  repo+=".json";
+  ofstream repo_file(repo);
+  if (!repo_file.is_open()) {
+    cerr << "can't open report.json\n";
+    return;
+  }
+  repo_file << s.GetString() << endl;
+  repo_file.close();
 }
