@@ -13,7 +13,7 @@
 #include "checkers/SwitchChecker.h"
 #include "checkers/TemplateChecker.h"
 #include "checkers/ZeroChecker.h"
-#include "checkers/LoopAnalyze.h"
+#include "checkers/LoopChecker.h"
 #include "framework/ASTManager.h"
 #include "framework/BasicChecker.h"
 #include "framework/CallGraph.h"
@@ -51,7 +51,7 @@ int main(int argc, const char *argv[]) {
   CompareChecker compare_checker(&resource, &manager, &call_graph, &configure);
   ZeroChecker zero_checker(&resource, &manager, &call_graph, &configure);
   SwitchChecker switch_checker(&resource, &manager, &call_graph, &configure);
-  LoopAnalyze loop_checker(&resource,&manager,&call_graph,&configure);
+  LoopChecker loop_checker(&resource,&manager,&call_graph,&configure);
   checker_manager.add_checker(&template_checker, "TemplateChecker");
   checker_manager.add_checker(&char_array_bound, "CharArrayBound");
   checker_manager.add_checker(&compare_checker, "CompareChecker");

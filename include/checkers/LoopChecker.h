@@ -30,9 +30,9 @@ using namespace clang::driver;
 using namespace clang::tooling;
 using namespace std;
 
-class LoopAnalyze : public BasicChecker {
+class LoopChecker : public BasicChecker {
 public:
-  LoopAnalyze(ASTResource *resource, ASTManager *manager,
+  LoopChecker(ASTResource *resource, ASTManager *manager,
                  CallGraph *call_graph, Config *configure)
       : BasicChecker(resource, manager, call_graph, configure){};
   std::vector<Defect> check();

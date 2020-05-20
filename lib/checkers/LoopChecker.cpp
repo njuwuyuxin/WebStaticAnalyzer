@@ -1,4 +1,4 @@
-#include "checkers/LoopAnalyze.h"
+#include "checkers/LoopChecker.h"
 
 namespace {
     
@@ -36,7 +36,7 @@ namespace {
     
     }//namespace
 
-void LoopAnalyze::getEntryFunc()
+void LoopChecker::getEntryFunc()
 {
     std::vector<ASTFunction *> topLevelFuncs = call_graph->getTopLevelFunctions();
     for (auto fun : topLevelFuncs)
@@ -52,7 +52,7 @@ void LoopAnalyze::getEntryFunc()
     return;
 }
 
-std::vector<Defect> LoopAnalyze::check()
+std::vector<Defect> LoopChecker::check()
 {
     std::vector<ASTFunction *> functions = resource->getFunctions();
     std::vector<Defect> defects; 
