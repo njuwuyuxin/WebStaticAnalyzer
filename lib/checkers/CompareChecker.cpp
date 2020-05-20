@@ -60,7 +60,7 @@ vector<Defect> CompareChecker::check(){
 void CompareChecker::push_defect(Stmt* s, const ASTContext& context){
   Defect d;
   d.location = s->getBeginLoc().printToString(context.getSourceManager());
-  d.info = "compare statement has both signed and unsigned number";
+  d.info = "比较运算中混用了有无符号数";
   defects.push_back(d);
 }
 
