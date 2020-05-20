@@ -28,7 +28,7 @@ namespace {
             }
         }
 
-        bool VisitForStmt(ForStmt* stmt)    //when fine for program point enter this function
+        bool VisitForStmt(ForStmt* stmt)    //when find for program point enter this function
         {
 
         }
