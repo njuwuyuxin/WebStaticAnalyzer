@@ -12,3 +12,4 @@ CMakeFiles/
 run.sh
 time.txt
 config.txt
+!tests/IntegrationTest/config.txt
