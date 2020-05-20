@@ -39,9 +39,9 @@ public:
 }
 
 vector<Defect> ZeroChecker::check() {
-    std::vector<ASTFunction *> topLevelFuncs = call_graph->getTopLevelFunctions();
+    std::vector<ASTFunction *> Funcs = resource->getFunctions();
     vector<Defect> defects;
-    for (auto fun : topLevelFuncs) {
+    for (auto fun : Funcs) {
         const FunctionDecl *funDecl = manager->getFunctionDecl(fun);
         auto stmt = funDecl->getBody();
         ZeroVisitor visitor;
@@ -49,8 +49,10 @@ vector<Defect> ZeroChecker::check() {
         auto stmts = visitor.getStmts();
         auto &sm = funDecl->getASTContext().getSourceManager();
         for (auto &&s : stmts) {
-          printStmt(s, sm);
-          defects.push_back({s->getBeginLoc().printToString(sm)});
+          Defect d;
+          d.location = s->getBeginLoc().printToString(sm);
+          d.info = "除号/模号右边出现了自然数0";
+          defects.push_back(d);
         }
     }
     return defects;
