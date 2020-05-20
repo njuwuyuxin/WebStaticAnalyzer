@@ -2,3 +2,4 @@ CharArrayBound.ast
 CompareChecker.ast
 SwitchChecker.ast
 ZeroChecker.ast
+LoopChecker.ast
