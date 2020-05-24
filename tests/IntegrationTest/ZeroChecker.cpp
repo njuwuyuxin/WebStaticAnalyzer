@@ -8,5 +8,6 @@ int test(){
 	int b;
 	b=4/2;
 	double c;
+	c=2.0/0.0;
 	return 1;
 }

@@ -13,38 +13,47 @@ static inline void printStmt(const Stmt* stmt, const SourceManager &sm){
 
 class ZeroVisitor : public RecursiveASTVisitor<ZeroVisitor> {
 private:
-    vector<Stmt *> stmts;
+    vector<Defect> defects;
     const FunctionDecl *funDecl;
 public:
   bool VisitBinaryOperator(BinaryOperator *E) {
     if (E->getOpcodeStr() == "/" || E->getOpcodeStr() == "%") {
+        string opt = E->getOpcodeStr();
         Expr* ro = E->getRHS()->IgnoreParenCasts()->IgnoreImpCasts();
         Expr::EvalResult rst;
         Expr::ConstExprUsage Usage = Expr::EvaluateForCodeGen;
         if(ro->EvaluateAsConstantExpr(rst, Usage, funDecl->getASTContext())){
           //string begin = ro->getBeginLoc().printToString(funDecl->getASTContext().getSourceManager());
           //cout << begin << endl;
+          Defect d;
+          auto &sm = funDecl->getASTContext().getSourceManager();
           APValue::ValueKind vtp = rst.Val.getKind();
           switch(vtp){
             case APValue::Int:{
               int64_t val = rst.Val.getInt().getExtValue();
               //cout <<val<<endl;
               if(val == 0){
-                stmts.push_back(ro);
+                d.location = ro->getBeginLoc().printToString(sm);
+                d.info = "操作符"+opt+"的右操作数是结果为0的常数表达式";
+                defects.push_back(d);
               }
             }break;
             case APValue::Float:{
               float val = rst.Val.getFloat().convertToFloat();
               //cout <<val<<endl;
               if(val == 0){
-                stmts.push_back(ro);
+                d.location = ro->getBeginLoc().printToString(sm);
+                d.info = "操作符"+opt+"的右操作数是结果为0的常数表达式";
+                defects.push_back(d);
               }
             }break;
             case APValue::FixedPoint:{
               int64_t val = rst.Val.getFixedPoint().getValue().getExtValue();
               //cout <<val<<endl;
               if(val == 0){
-                stmts.push_back(ro);
+                d.location = ro->getBeginLoc().printToString(sm);
+                d.info = "操作符"+opt+"的右操作数是结果为0的常数表达式";
+                defects.push_back(d);
               }
             }break;
             default:break;
@@ -59,7 +68,7 @@ public:
     this->funDecl = funDecl;
   }
 
-    const vector<Stmt *> &getStmts() const { return stmts; }
+    const vector<Defect> &getDefects() const { return defects; }
 
 };
 }
@@ -73,14 +82,8 @@ vector<Defect> ZeroChecker::check() {
         ZeroVisitor visitor;
         visitor.getFun(funDecl);
         visitor.TraverseStmt(stmt);
-        auto stmts = visitor.getStmts();
-        auto &sm = funDecl->getASTContext().getSourceManager();
-        for (auto &&s : stmts) {
-          Defect d;
-          d.location = s->getBeginLoc().printToString(sm);
-          d.info = "除号/模号右边出现了自然数0";
-          defects.push_back(d);
-        }
+        auto dfts = visitor.getDefects();
+        defects.insert(defects.end(),dfts.begin(),dfts.end());
     }
     return defects;
 }
