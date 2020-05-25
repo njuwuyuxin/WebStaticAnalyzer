@@ -23,9 +23,12 @@ namespace {
                 bool ans;
                 if(conditionExpr->EvaluateAsBooleanCondition(ans,ctx))//Expresion can be fold and convert to a boolean condition
                 {   if(ans) //if the Expretion ans is always true
-                        stmts.push_back(conditionExpr);
+                    {    stmts.push_back(conditionExpr);
+                    }
                 }
+                return ans;
             }
+            return false;
         }
 
         bool VisitForStmt(ForStmt* stmt)    //when find for program point enter this function
