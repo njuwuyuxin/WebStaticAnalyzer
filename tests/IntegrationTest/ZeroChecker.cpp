@@ -3,9 +3,11 @@ int test(){
 	int y;
 	y=x/0;
 	y=x%0;
-	double z;
-	z=2.0/0.0;
-	int a,b;
-	int c=a/b;
+	int a;
+	a=4/(3+1/3-3);
+	int b;
+	b=4/2;
+	double c;
+	c=2.0/0.0;
 	return 1;
 }
