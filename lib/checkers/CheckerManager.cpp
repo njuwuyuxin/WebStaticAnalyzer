@@ -58,6 +58,11 @@ void CheckerManager::check_all() {
   writer.StartArray();
 
   for (auto checker : checkers) {
+    if (enable.find(checker.second)==enable.end()){
+      cout<<"Checker: "<<checker.second<<" not found in config.txt"<<endl;
+      cout<<checker.second<<" not executed"<<endl;
+      continue;
+    }
     if (enable.find(checker.second)->second == "true") {
       process_file << "Starting " + checker.second + " check" << endl;
       clock_t start, end;
