@@ -39,6 +39,20 @@ void CheckerManager::check_all() {
 
   auto enable = configure->getOptionBlock("CheckerEnable");
 
+  string ReportSavePath = "";
+  //保证兼容性，即使Config中没有配置FileSettings也可正常运行，即缺陷报告保存在当前目录
+  //FileSettings设置应为绝对路径，即以/开头并以/结尾
+  auto AllBlocks = configure->getAllOptionBlocks();
+  if(AllBlocks.find("FileSettings")!=AllBlocks.end()){
+    auto FileSettings = configure->getOptionBlock("FileSettings");
+    ReportSavePath = FileSettings.find("ReportSavePath")->second;
+  }
+  else{
+    cout<<"FileSettings block not found : use default settings"<<endl;
+  }
+  
+  
+
   StringBuffer s;
   PrettyWriter<StringBuffer> writer(s);
   writer.StartArray();
@@ -71,6 +85,7 @@ void CheckerManager::check_all() {
   strftime(ch, sizeof(ch), "%Y-%m-%d %H-%M-%S", localtime(&t)); //年-月-日 时-分-秒
   string repo(ch);
   repo+=".json";
+  repo = ReportSavePath + repo;
   ofstream repo_file(repo);
   if (!repo_file.is_open()) {
     cerr << "can't open report.json\n";
