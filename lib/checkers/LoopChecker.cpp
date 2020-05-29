@@ -31,10 +31,12 @@ namespace {
             return false;
         }
 
+        /*
         bool VisitForStmt(ForStmt* stmt)    //when find for program point enter this function
         {
 
         }
+        */
     };
     
     }//namespace
