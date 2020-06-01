@@ -39,19 +39,31 @@ void CheckerManager::check_all() {
 
   auto enable = configure->getOptionBlock("CheckerEnable");
 
+/* config.txt
+FileSettings
+{
+  ReportSavePath = $savepath (default: 当前目录)
+  ReportFileName = $filename (default: 当前时间)
+}
+*/
   string ReportSavePath = "";
-  //保证兼容性，即使Config中没有配置FileSettings也可正常运行，即缺陷报告保存在当前目录
-  //FileSettings设置应为绝对路径，即以/开头并以/结尾
+  string ReportFileName = "";
+  //保证兼容性，即使Config中没有配置FileSettings也可正常运行
+  //即缺陷报告保存在当前目录，报告文件名用当前时间代替
+  //ReportSavePath设置应为绝对路径，即以/开头并以/结尾
   auto AllBlocks = configure->getAllOptionBlocks();
   if(AllBlocks.find("FileSettings")!=AllBlocks.end()){
     auto FileSettings = configure->getOptionBlock("FileSettings");
     ReportSavePath = FileSettings.find("ReportSavePath")->second;
+    ReportFileName = FileSettings.find("ReportFileName")->second;
   }
   else{
     cout<<"FileSettings block not found : use default settings"<<endl;
+    time_t t = time(0);
+    char ch[64];
+    strftime(ch, sizeof(ch), "%Y-%m-%d %H-%M-%S", localtime(&t)); //年-月-日 时-分-秒
+    ReportFileName = ch;
   }
-  
-  
 
   StringBuffer s;
   PrettyWriter<StringBuffer> writer(s);
@@ -85,13 +97,9 @@ void CheckerManager::check_all() {
   process_file.close();
   writer.EndArray();
 
-  time_t t = time(0);
-  char ch[64];
-  strftime(ch, sizeof(ch), "%Y-%m-%d %H-%M-%S", localtime(&t)); //年-月-日 时-分-秒
-  string repo(ch);
-  repo+=".json";
-  repo = ReportSavePath + repo;
-  ofstream repo_file(repo);
+  ReportFileName+=".json";
+  ReportFileName = ReportSavePath + ReportFileName;
+  ofstream repo_file(ReportFileName);
   if (!repo_file.is_open()) {
     cerr << "can't open report.json\n";
     return;

@@ -29,3 +29,8 @@ TemplateChecker
 {
 	request_fun = 2
 }
+FileSettings
+{
+	ReportSavePath = result/
+	ReportFileName = test
+}
