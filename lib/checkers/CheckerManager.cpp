@@ -47,22 +47,20 @@ FileSettings
 }
 */
   string ReportSavePath = "";
-  string ReportFileName = "";
+  time_t t = time(0);
+  char ch[64];
+  strftime(ch, sizeof(ch), "%Y-%m-%d %H-%M-%S", localtime(&t)); //年-月-日 时-分-秒
+  string ReportFileName(ch);
   //保证兼容性，即使Config中没有配置FileSettings也可正常运行
   //即缺陷报告保存在当前目录，报告文件名用当前时间代替
   //ReportSavePath设置应为绝对路径，即以/开头并以/结尾
   auto AllBlocks = configure->getAllOptionBlocks();
   if(AllBlocks.find("FileSettings")!=AllBlocks.end()){
     auto FileSettings = configure->getOptionBlock("FileSettings");
-    ReportSavePath = FileSettings.find("ReportSavePath")->second;
-    ReportFileName = FileSettings.find("ReportFileName")->second;
-  }
-  else{
-    cout<<"FileSettings block not found : use default settings"<<endl;
-    time_t t = time(0);
-    char ch[64];
-    strftime(ch, sizeof(ch), "%Y-%m-%d %H-%M-%S", localtime(&t)); //年-月-日 时-分-秒
-    ReportFileName = ch;
+    if(FileSettings.find("ReportSavePath") != FileSettings.end())
+      ReportSavePath = FileSettings.find("ReportSavePath")->second;
+    if(FileSettings.find("ReportFileName") != FileSettings.end())
+      ReportFileName = FileSettings.find("ReportFileName")->second;
   }
 
   StringBuffer s;
