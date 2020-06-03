@@ -1,16 +1,16 @@
 #include "checkers/LoopChecker.h"
 
 namespace {
-    
+
     class LoopVisitor : public RecursiveASTVisitor<LoopVisitor>
     {
     private:
         vector<Stmt *> stmts;
         const ASTContext &ctx;
-
+        std::unique_ptr<CFG> &cfg;
 
     public:
-        LoopVisitor(const ASTContext &ctx):ctx(ctx){}
+        LoopVisitor(const ASTContext &ctx, std::unique_ptr<CFG> &cfg):ctx(ctx),cfg(cfg){}
 
         const vector<Stmt *> &getStmts() const { return stmts; }
 
@@ -62,16 +62,19 @@ std::vector<Defect> LoopChecker::check()
     std::vector<ASTFunction *> functions = resource->getFunctions();
     std::vector<Defect> defects; 
     
+
     for(auto func:functions)
     {
-        const FunctionDecl *funDecl = manager->getFunctionDecl(func);
-        auto stmt = funDecl->getBody();
-        const ASTContext &ctx = funDecl->getASTContext();
+        const FunctionDecl *funDecl = manager->getFunctionDecl(func);   //get function declaration
+        auto stmt = funDecl->getBody();     //get body of the function through getbody() -> Clang::Stmt type
+        const ASTContext &ASTContext = funDecl->getASTContext();
 
-        LoopVisitor vistor(ctx);
-        vistor.TraverseStmt(stmt);
+        std::unique_ptr<CFG> &CurrentFuncCFG = manager->getCFG(func);
+
+        LoopVisitor vistor(ASTContext,CurrentFuncCFG);    //visit AST
+        vistor.TraverseStmt(stmt);  
         auto stmts = vistor.getStmts();
-        auto &sm = ctx.getSourceManager();
+        auto &sm = ASTContext.getSourceManager();
         for (auto &&s : stmts) {
           Defect d;
           d.location = s->getBeginLoc().printToString(sm);

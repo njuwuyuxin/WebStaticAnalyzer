@@ -22,7 +22,9 @@
 #include <clang/Tooling/Tooling.h>
 #include <llvm/Support/raw_ostream.h>
 
+
 #include "framework/BasicChecker.h"
+#include "clang/Analysis/AnalysisDeclContext.h" //Use AnalysisDeclContext to BuildCFG
 
 using namespace clang;
 using namespace llvm;
@@ -33,8 +35,8 @@ using namespace std;
 class LoopChecker : public BasicChecker {
 public:
   LoopChecker(ASTResource *resource, ASTManager *manager,
-                 CallGraph *call_graph, Config *configure)
-      : BasicChecker(resource, manager, call_graph, configure){};
+              CallGraph *call_graph, Config *configure)
+      : BasicChecker(resource, manager, call_graph, configure) {};
   std::vector<Defect> check();
 
 private:
