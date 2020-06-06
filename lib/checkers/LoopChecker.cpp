@@ -2,6 +2,17 @@
 
 namespace {
 
+    static inline void printStmt(const Stmt *stmt, const SourceManager &sm,string info = "")
+    {   //Originate for ZeroChecker
+        string begin = stmt->getBeginLoc().printToString(sm);
+        cout << begin << endl;
+        LangOptions LangOpts;
+        LangOpts.CPlusPlus = true;
+        stmt->printPretty(outs(), nullptr, LangOpts);
+        cout<<" "<<info;
+        cout << endl;
+    }
+
     class LoopVisitor : public RecursiveASTVisitor<LoopVisitor>
     {
     private:
@@ -14,21 +25,26 @@ namespace {
         vector< DefectInfo > stmts;
         const ASTContext &ctx;
         std::unique_ptr<CFG> &cfg;
+        const SourceManager &sm;
 
     public:
-        LoopVisitor(const ASTContext &ctx, std::unique_ptr<CFG> &cfg):ctx(ctx),cfg(cfg){}
+        LoopVisitor(const ASTContext &ctx, std::unique_ptr<CFG> &cfg,  const SourceManager &sm)
+                    :ctx(ctx),cfg(cfg),sm(sm){}
 
         const vector<DefectInfo> &getStmts() const { return stmts; }
 
         bool VisitWhileStmt(WhileStmt* stmt)    //when find while program point enter this function
         {
+            // printStmt(stmt,sm);
             //do Data Flow Analysis using CFG?
 
             //Current While Condition
             Expr* conditionExpr = stmt->getCond();
             if(conditionExpr!=nullptr)
             {
+                printStmt(conditionExpr, sm);
                 llvm::APSInt Result;
+                //檢查表達式中是否值恆為常數
                 if (conditionExpr->isIntegerConstantExpr(Result, ctx))//Check wheather the Expression can be fold into a integer
                 {
                     if(Result!=0)    //if true and the Expression result is always bigger than one, then we find an Infinety Loop
@@ -46,32 +62,13 @@ namespace {
                 }
                 return true;
 
-                // bool BooleanValue;
-                // //檢查當前while檢查表達式中是否值恆為常數
-                // if(conditionExpr->EvaluateAsBooleanCondition(BooleanValue,ctx))//Expresion can be fold and convert to a boolean condition
-                // {   if(BooleanValue) //if the Expretion ans is always true
-                //     {    
-                //         //TODO get Condition String! Check others Code for more information
-                //         stmts.push_back(conditionExpr);
-                //         return true;
-                //     }
-                //     return true;
-                // }
-
-                // //check whether current condition can be fold and convert to a integer
-                // clang::Expr::EvalResult IntegerValue;
-                // if(conditionExpr->EvaluateAsInt(IntegerValue,ctx))
-                // {
-
-                //     return true;
-                // }
-                // return ans;
             }
             return false;
         }
 
         bool VisitForStmt(ForStmt* stmt)    //when find for program point enter this function
         {
+            // printStmt(stmt,sm);
             Expr* conditionExpr = stmt->getCond();
             if(conditionExpr!=nullptr)
             {
@@ -133,13 +130,13 @@ std::vector<Defect> LoopChecker::check()
         const FunctionDecl *funDecl = manager->getFunctionDecl(func);   //get function declaration
         auto stmt = funDecl->getBody();     //get body of the function through getbody() -> Clang::Stmt type
         const ASTContext &ASTContext = funDecl->getASTContext();
+        auto &sm = ASTContext.getSourceManager();
 
         std::unique_ptr<CFG> &CurrentFuncCFG = manager->getCFG(func);
 
-        LoopVisitor vistor(ASTContext,CurrentFuncCFG);    //visit AST
+        LoopVisitor vistor(ASTContext,CurrentFuncCFG,sm);    //visit AST
         vistor.TraverseStmt(stmt);  
         auto DefectList = vistor.getStmts();
-        auto &sm = ASTContext.getSourceManager();
 
 
         for (auto &&DefectStmt : DefectList) {
