@@ -1,13 +1,9 @@
-int test(){
-	int x=0;
-	int y;
-	y=x/0;
-	y=x%0;
-	int a;
-	a=4/(3+1/3-3);
-	int b;
-	b=4/2;
-	double c;
-	c=2.0/0.0;
-	return 1;
+int testZero2(){
+	int a=1;
+	int b=2;
+	int c=a+b*2;
+	int d = ++a;
+	int e=(1+2)*3;
+	c = a+b;
+	return 0;
 }
