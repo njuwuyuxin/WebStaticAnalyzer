@@ -27,19 +27,28 @@ namespace {
         std::unique_ptr<CFG> &cfg;
         const SourceManager &sm;
 
-    public:
-        LoopVisitor(const ASTContext &ctx, std::unique_ptr<CFG> &cfg,  const SourceManager &sm)
-                    :ctx(ctx),cfg(cfg),sm(sm){}
-
-        const vector<DefectInfo> &getStmts() const { return stmts; }
-
-        bool VisitWhileStmt(WhileStmt* stmt)    //when find while program point enter this function
+        bool check_Expresion(Stmt* stmt)
         {
-            // printStmt(stmt,sm);
+
             //do Data Flow Analysis using CFG?
 
-            //Current While Condition
-            Expr* conditionExpr = stmt->getCond();
+            Expr* conditionExpr = nullptr;
+            
+            if(ForStmt::classof(stmt))
+            {
+                conditionExpr = reinterpret_cast<ForStmt*>(stmt)->getCond();
+            }
+            else if(WhileStmt::classof(stmt))
+            {
+                conditionExpr = reinterpret_cast<WhileStmt*>(stmt)->getCond();
+            }
+            else 
+            {
+                std::cout<<"Something Wrong with check Expression!"<<endl;
+                return false;
+            }
+            
+
             if(conditionExpr!=nullptr)
             {
                 printStmt(conditionExpr, sm);
@@ -47,7 +56,7 @@ namespace {
                 //檢查表達式中是否值恆為常數
                 if (conditionExpr->isIntegerConstantExpr(Result, ctx))//Check wheather the Expression can be fold into a integer
                 {
-                    if(Result!=0)    //if true and the Expression result is always bigger than one, then we find an Infinety Loop
+                    if(Result!=0)    //if true and the Expression result is always not Zero, then we find an Infinety Loop
                     {   
                         stmts.push_back({stmt,//defect Statement
                                         "循環條件恆爲" + Result.toString(10)});//Defect Info
@@ -63,40 +72,57 @@ namespace {
                 return true;
 
             }
-            return false;
+            else
+            {   //No Condition Expression in the loop
+                
+                stmts.push_back({stmt,//defect Statement
+                               "循環缺乏跳出條件"});//Defect Info
+            }
+            return true;
+        }
+
+
+    public:
+        LoopVisitor(const ASTContext &ctx, std::unique_ptr<CFG> &cfg,  const SourceManager &sm)
+                    :ctx(ctx),cfg(cfg),sm(sm){}
+
+        const vector<DefectInfo> &getStmts() const { return stmts; }
+
+        bool VisitWhileStmt(WhileStmt* stmt)    //when find while program point enter this function
+        {
+            return check_Expresion(stmt);
         }
 
         bool VisitForStmt(ForStmt* stmt)    //when find for program point enter this function
         {
             // printStmt(stmt,sm);
-            Expr* conditionExpr = stmt->getCond();
-            if(conditionExpr!=nullptr)
-            {
-                llvm::APSInt Result;
-                if (conditionExpr->isIntegerConstantExpr(Result, ctx))//Check wheather the Expression can be fold into a integer
-                {
-                    if(Result!=0)    //if true and the Expression result is always bigger than one, then we find an Infinety Loop
-                    {   
-                        stmts.push_back({conditionExpr,//defect Statement
-                                        "循環條件恆爲" + Result.toString(10)});//Defect Info
-                    }
-                }
-                else //conditionExpr is a Varient
-                {
-                    //TODO:need to get Condition String
-                    //Source manager to get source code loacation
-                    std::cout<<"Condition cannot fold into Integer!\n";
-
-                }
-                return true;
-            }
-            else
-            {
-                stmts.push_back({stmt,//defect Statement
-                               "循環缺乏跳出條件"});//Defect Info
-                return true;
-            }
-            
+            // Expr* conditionExpr = stmt->getCond();
+            // if(conditionExpr!=nullptr)
+            // {
+            //     llvm::APSInt Result;
+            //     if (conditionExpr->isIntegerConstantExpr(Result, ctx))//Check wheather the Expression can be fold into a integer
+            //     {
+            //         if(Result!=0)    //if true and the Expression result is always bigger than one, then we find an Infinety Loop
+            //         {   
+            //             stmts.push_back({conditionExpr,//defect Statement
+            //                             "循環條件恆爲" + Result.toString(10)});//Defect Info
+            //         }
+            //     }
+            //     else //conditionExpr is a Varient
+            //     {
+            //         //TODO:need to get Condition String
+            //         //Source manager to get source code loacation
+            //         std::cout<<"Condition cannot fold into Integer!\n";
+            //     }
+            //     return true;
+            // }
+            // else
+            // {
+            //     stmts.push_back({stmt,//defect Statement
+            //                    "循環缺乏跳出條件"});//Defect Info
+            //     return true;
+            // }
+            return check_Expresion(stmt);
         }
     };
     
