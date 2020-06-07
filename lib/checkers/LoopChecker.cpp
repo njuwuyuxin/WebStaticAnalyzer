@@ -29,6 +29,12 @@ namespace {
         //Source Manager
         const SourceManager &sm;
 
+        bool check_CFG()
+        {
+
+            return true;
+        }
+
 
         bool check_Expresion(Stmt* stmt)
         {
@@ -92,12 +98,16 @@ namespace {
 
         bool VisitWhileStmt(WhileStmt* stmt)    //when find while program point enter this function
         {
-            return check_Expresion(stmt);
+            bool ExprResult = check_Expresion(stmt);
+            bool CFGResult = check_CFG();
+            return ExprResult && CFGResult;
         }
 
         bool VisitForStmt(ForStmt* stmt)    //when find for program point enter this function
         {
-            return check_Expresion(stmt);
+            bool ExprResult = check_Expresion(stmt);
+            bool CFGResult = check_CFG();
+            return ExprResult && CFGResult;
         }
     };
     
