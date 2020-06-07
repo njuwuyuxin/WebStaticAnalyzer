@@ -8,7 +8,7 @@ namespace {
         cout << begin << endl;
         LangOptions LangOpts;
         LangOpts.CPlusPlus = true;
-        stmt->printPretty(outs(), nullptr, LangOpts);
+        stmt->printPretty(outs(), nullptr, LangOpts,5);
         cout<<" "<<info;
         cout << endl;
     }
@@ -25,7 +25,10 @@ namespace {
         vector< DefectInfo > stmts;
         const ASTContext &ctx;
         std::unique_ptr<CFG> &cfg;
+
+        //Source Manager
         const SourceManager &sm;
+
 
         bool check_Expresion(Stmt* stmt)
         {
@@ -48,35 +51,34 @@ namespace {
                 return false;
             }
             
+            string Defect_Description;
 
             if(conditionExpr!=nullptr)
             {
                 printStmt(conditionExpr, sm);
-                llvm::APSInt Result;
+                llvm::APSInt Result(0);
                 //檢查表達式中是否值恆為常數
                 if (conditionExpr->isIntegerConstantExpr(Result, ctx))//Check wheather the Expression can be fold into a integer
                 {
                     if(Result!=0)    //if true and the Expression result is always not Zero, then we find an Infinety Loop
                     {   
+                        Defect_Description = "循環條件恆爲" + Result.toString(10);
                         stmts.push_back({stmt,//defect Statement
-                                        "循環條件恆爲" + Result.toString(10)});//Defect Info
+                                        Defect_Description});//Defect Info
                     }
                 }
                 else //conditionExpr is a Varient
                 {
-                    //TODO:need to get Condition String
-                    //Source manager to get source code loacation
-                    std::cout<<"Condition cannot fold into Integer!\n";
+                    printStmt(conditionExpr,sm,"Condition cannot fold into Integer!");
 
                 }
-                return true;
-
             }
             else
             {   //No Condition Expression in the loop
-                
+                Defect_Description = "循環缺乏跳出條件";
+                printStmt(stmt, sm,Defect_Description);
                 stmts.push_back({stmt,//defect Statement
-                               "循環缺乏跳出條件"});//Defect Info
+                               Defect_Description});//Defect Info
             }
             return true;
         }
@@ -95,33 +97,6 @@ namespace {
 
         bool VisitForStmt(ForStmt* stmt)    //when find for program point enter this function
         {
-            // printStmt(stmt,sm);
-            // Expr* conditionExpr = stmt->getCond();
-            // if(conditionExpr!=nullptr)
-            // {
-            //     llvm::APSInt Result;
-            //     if (conditionExpr->isIntegerConstantExpr(Result, ctx))//Check wheather the Expression can be fold into a integer
-            //     {
-            //         if(Result!=0)    //if true and the Expression result is always bigger than one, then we find an Infinety Loop
-            //         {   
-            //             stmts.push_back({conditionExpr,//defect Statement
-            //                             "循環條件恆爲" + Result.toString(10)});//Defect Info
-            //         }
-            //     }
-            //     else //conditionExpr is a Varient
-            //     {
-            //         //TODO:need to get Condition String
-            //         //Source manager to get source code loacation
-            //         std::cout<<"Condition cannot fold into Integer!\n";
-            //     }
-            //     return true;
-            // }
-            // else
-            // {
-            //     stmts.push_back({stmt,//defect Statement
-            //                    "循環缺乏跳出條件"});//Defect Info
-            //     return true;
-            // }
             return check_Expresion(stmt);
         }
     };
@@ -168,7 +143,7 @@ std::vector<Defect> LoopChecker::check()
         for (auto &&DefectStmt : DefectList) {
           Defect d;
           d.location = DefectStmt.Statement->getBeginLoc().printToString(sm);
-          d.info = "存在可能的死循環, " + DefectStmt.info;
+          d.info = "存在可能的死循環 ("+ DefectStmt.info + ")";
           defects.push_back(d);
         }
     }
