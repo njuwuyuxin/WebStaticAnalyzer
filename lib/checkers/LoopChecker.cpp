@@ -25,8 +25,9 @@ namespace {
         };
 
         vector< DefectInfo > stmts;
-        const ASTContext &ctx;
-        std::unique_ptr<CFG> &cfg;
+        const ASTContext &CTX;
+        std::unique_ptr<CFG> &CFG;
+        const FunctionDecl* funDecl;
 
         //Source Manager
         const SourceManager &sm;
@@ -34,9 +35,15 @@ namespace {
         bool check_CFG()
         {
             //TODO:Data FLow Analyze
-            //Avalible Expression Analyze ?
+            clang::AnalysisDeclContextManager AM(const_cast<clang::ASTContext&>(CTX));
+            auto AnalysisDeclContext = AM.getContext(funDecl);
+            auto result = LiveVariables::computeLiveness(*AnalysisDeclContext,false);
 
-            // LiveVariables::computeLiveness(ctx,false);
+            //TODO get Loop Control Variables in result
+
+
+
+            //Avalible Expression Analyze ?
             return true;
         }
 
@@ -66,7 +73,7 @@ namespace {
                 printStmt(conditionExpr, sm);
                 llvm::APSInt Result(0);
                 //檢查表達式中是否值恆為常數
-                if (conditionExpr->isIntegerConstantExpr(Result, ctx))//Check wheather the Expression can be fold into a integer
+                if (conditionExpr->isIntegerConstantExpr(Result, CTX))//Check wheather the Expression can be fold into a integer
                 {
                     if(Result!=0)    //if true and the Expression result is always not Zero, then we find an Infinety Loop
                     {   
@@ -93,8 +100,8 @@ namespace {
 
 
     public:
-        LoopVisitor(const ASTContext &ctx, std::unique_ptr<CFG> &cfg,  const SourceManager &sm)
-                    :ctx(ctx),cfg(cfg),sm(sm){}
+        LoopVisitor(const ASTContext &ctx, std::unique_ptr<clang::CFG> &cfg,  const SourceManager &sm,const FunctionDecl* funDecl)
+                    :CTX(ctx),CFG(cfg),sm(sm),funDecl(funDecl){}
 
         const vector<DefectInfo> &getStmts() const { return stmts; }
 
@@ -147,7 +154,7 @@ std::vector<Defect> LoopChecker::check()
 
         auto &CurrentFuncCFG = manager->getCFG(func);
 
-        LoopVisitor vistor(ASTContext,CurrentFuncCFG,sm);    //visit AST
+        LoopVisitor vistor(ASTContext,CurrentFuncCFG,sm,funDecl);    //visit AST
         vistor.TraverseStmt(stmt);
         auto DefectList = vistor.getStmts();
 
