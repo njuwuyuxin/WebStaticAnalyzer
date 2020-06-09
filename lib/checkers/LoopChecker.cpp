@@ -1,4 +1,6 @@
 #include "checkers/LoopChecker.h"
+#include "clang/Analysis/Analyses/LiveVariables.h"
+#include "clang/Analysis/AnalysisDeclContext.h"
 
 namespace {
 
@@ -31,16 +33,16 @@ namespace {
 
         bool check_CFG()
         {
+            //TODO:Data FLow Analyze
+            //Avalible Expression Analyze ?
 
+            // LiveVariables::computeLiveness(ctx,false);
             return true;
         }
 
 
         bool check_Expresion(Stmt* stmt)
         {
-
-            //do Data Flow Analysis using CFG?
-
             Expr* conditionExpr = nullptr;
             
             if(ForStmt::classof(stmt))
@@ -143,10 +145,10 @@ std::vector<Defect> LoopChecker::check()
         const ASTContext &ASTContext = funDecl->getASTContext();
         auto &sm = ASTContext.getSourceManager();
 
-        std::unique_ptr<CFG> &CurrentFuncCFG = manager->getCFG(func);
+        auto &CurrentFuncCFG = manager->getCFG(func);
 
         LoopVisitor vistor(ASTContext,CurrentFuncCFG,sm);    //visit AST
-        vistor.TraverseStmt(stmt);  
+        vistor.TraverseStmt(stmt);
         auto DefectList = vistor.getStmts();
 
 
