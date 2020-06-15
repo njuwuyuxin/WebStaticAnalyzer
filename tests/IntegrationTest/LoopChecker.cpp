@@ -2,6 +2,19 @@
 #include <iostream>
 using namespace std;
 
+void NormalLoop()
+{
+    int x = 0;
+    while(x>100)
+    {
+        cout<<x<<endl;
+        x++;
+    }
+
+    for(x= 0;x<100;x++)
+        cout<<x<<endl;
+}
+
 void TestLoop()
 {
     int x = 1;
