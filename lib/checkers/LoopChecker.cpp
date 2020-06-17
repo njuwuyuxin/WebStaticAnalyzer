@@ -111,8 +111,8 @@ namespace
             // bool CFGResult = check_CFG();
             // return ExprResult && CFGResult;
 
-            auto CondDel = stmt->getConditionVariableDeclStmt();
-            cout << LivenessResult->isLive(stmt,CondDel) <<endl<<endl;
+            // auto CondDel = stmt->getConditionVariableDeclStmt();
+            // cout << LivenessResult->isLive(stmt,CondDel) <<endl<<endl;
 
             return ExprResult;
         }
@@ -127,8 +127,8 @@ namespace
             }
             // bool CFGResult = check_CFG();
             // return ExprResult && CFGResult;
-            auto CondDel = stmt->getConditionVariableDeclStmt();
-            cout << LivenessResult->isLive(stmt,CondDel) <<endl<<endl;
+            // auto CondDel = stmt->getConditionVariableDeclStmt();
+            // cout << LivenessResult->isLive(stmt,CondDel) <<endl<<endl;
             return ExprResult;
         }
     };
