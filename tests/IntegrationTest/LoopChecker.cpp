@@ -1,7 +1,6 @@
 
 #include <iostream>
 using namespace std;
-#ifdef A
 void NormalLoop()
 {
     int x = 0;
@@ -55,8 +54,7 @@ void TestFor()
 
     }
 }
-#endif
-
+#ifdef B
 void TestNestedLoop()
 {
     for(int i = 0;i<100;++i)
@@ -84,3 +82,4 @@ void TestNestedLoop()
         }
     }
 }
+#endif
