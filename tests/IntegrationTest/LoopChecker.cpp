@@ -1,6 +1,7 @@
 
 #include <iostream>
 using namespace std;
+#ifedf A
 void NormalLoop()
 {
     int x = 0;
@@ -21,6 +22,7 @@ void NormalLoop()
             break;
     }
 }
+#endif
 
 void TestWhile()
 {
