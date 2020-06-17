@@ -77,6 +77,7 @@ vector<Defect> ZeroChecker::check() {
     std::vector<ASTFunction *> Funcs = resource->getFunctions();
     defects.clear();
     for (auto fun : Funcs) {
+        ValueList.clear();
         const FunctionDecl *funDecl = manager->getFunctionDecl(fun);
         getFunDecl(funDecl);
         auto stmt = funDecl->getBody();
@@ -85,11 +86,7 @@ vector<Defect> ZeroChecker::check() {
         visitor.TraverseStmt(stmt);
         auto dfts = visitor.getDefects();
         defects.insert(defects.end(),dfts.begin(),dfts.end());
-        if(funDecl->getQualifiedNameAsString()=="testZero2"){
-          visitFunctionStmts(funDecl->getBody());
-          //std::unique_ptr<CFG>& cfg = manager->getCFG(fun);
-          //DataFlowAnalysis(cfg.get());
-      }
+        visitFunctionStmts(funDecl->getBody());
     }
     defectsClearSamePlace();
     return defects;
@@ -271,7 +268,7 @@ void ZeroChecker::DealSwitchStmt(SwitchStmt *sst){
   SwitchCase *case_begin = sst->getSwitchCaseList();
   vector<VarValue> stored;
   bool canVisit = false;
-  DefaultStmt *dest;
+  DefaultStmt *dest=nullptr;
   while(case_begin!=nullptr){
     string case_name(case_begin->getStmtClassName());
     stored = ValueList;
@@ -314,6 +311,9 @@ void ZeroChecker::DealSwitchStmt(SwitchStmt *sst){
     }
   }
   if(!canVisit){
+    if(dest == nullptr){
+      return;
+    }
       DealCompoundStmt(dest->getSubStmt());
       bool new_var;
       for(auto i:stored){
@@ -337,7 +337,13 @@ void ZeroChecker::DealSwitchStmt(SwitchStmt *sst){
 
 void ZeroChecker::DealForStmt(ForStmt *fst){
   DealStmt(fst->getInit());
-  VarValue res = DealRValExpr(fst->getCond());
+  VarValue res;
+  if(fst->getCond()!=nullptr){
+    res = DealRValExpr(fst->getCond());
+  }
+  else{
+    res.PosValue.insert(1);
+  }
   if(res.PosValue.find(0)!=res.PosValue.end()){
     if(res.PosValue.size()==1){
       
