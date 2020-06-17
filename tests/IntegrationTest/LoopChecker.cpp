@@ -1,7 +1,7 @@
 
 #include <iostream>
 using namespace std;
-#ifedf A
+#ifdef A
 void NormalLoop()
 {
     int x = 0;
