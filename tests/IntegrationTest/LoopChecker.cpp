@@ -26,15 +26,15 @@ void NormalLoop()
 
 void TestWhile()
 {
-    int x = 1;
-    while (x)
+    while (1)
     {
         // cout << "Infinity Loop!Test" << endl;
     }
 
+    int x = 1;
     while(true)
     {
-        if(x < 0)
+        if(x > 0)
             break;
     }
 }
