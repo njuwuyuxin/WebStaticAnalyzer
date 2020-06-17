@@ -2,18 +2,37 @@
 // #include "clang/Analysis/Analyses/LiveVariables.h"
 // #include "clang/Analysis/AnalysisDeclContext.h"
 
-#include <llvm/ADT/SCCIterator.h>
+// #include <llvm/ADT/SCCIterator.h>
 
 namespace
 {
-    static inline void printStmt(const Stmt *stmt, const SourceManager &sm, string info = "")
+    static inline void printStmt(const Stmt *stmt, const SourceManager *sm = nullptr, string info = "",int indent = 0)
     { //Originate for ZeroChecker
-        string begin = stmt->getBeginLoc().printToString(sm);
-        cout << begin << endl;
+        if(!stmt)
+        {    
+            cout<<"!!! The Given Satement is Empty------------------------------------"<<endl;
+            return;
+        }
+
+        if (sm)
+        {
+            string begin = stmt->getBeginLoc().printToString(*sm);
+            cout << begin << endl;
+        }
+
+
+        for(int i=0;i<indent;++i)
+            cout<<"\t";
+        
         LangOptions LangOpts;
         LangOpts.CPlusPlus = true;
         stmt->printPretty(outs(), nullptr, LangOpts, 5);
-        cout << " " << info;
+        // stmt->dumpColor();
+
+        if (info != "")
+        {
+            cout << " " << info;
+        }
         cout << endl;
     }
 
@@ -78,11 +97,12 @@ namespace
                     if (Result != 0) //if true and the Expression result is always not Zero, then we find an Infinety Loop
                     {
                         Defect_Description = "循環條件恆爲" + Result.toString(10);
+                        printStmt(conditionExpr,nullptr,Defect_Description);
                     }
                 }
                 else //conditionExpr is a Varient
                 {
-                    printStmt(conditionExpr, sm, "Condition cannot fold into Integer!");
+                    printStmt(conditionExpr, &sm, "Condition cannot fold into Integer!");
                     // cout<<"Condition Liveness : "<<CondLiveness<<endl;
                 }
             }
@@ -99,42 +119,75 @@ namespace
             return true;
         }
 
-bool check_CFG(Stmt* stmt)
-{
-    printStmt(stmt,sm);
-    CFG::BuildOptions BO;
-    // BO.AddLoopExit = true;
-    ASTContext& temp = const_cast<ASTContext&>(CTX);
-    auto Loop_CFG = CFG::buildCFG(funDecl,stmt,&temp,BO);
-    for(auto i:*Loop_CFG)
-    {
-        
-    }
+        //LayerAmount : 嵌套層數
+        bool check_CFG(Stmt *stmt,int LayerAmount)
+        {
+            if(LayerAmount)
+                printStmt(stmt, nullptr,"",LayerAmount);
+            else
+                printStmt(stmt, &sm);
 
-    LangOptions LangOpts;
-    LangOpts.CPlusPlus = true;
-    Loop_CFG->dump(LangOpts,true);
-    return true;
-}
+
+            CFG::BuildOptions BO;
+            // BO.AddLoopExit = true;
+            ASTContext &temp = const_cast<ASTContext &>(CTX);
+            auto Loop_CFG = CFG::buildCFG(funDecl, stmt, &temp, BO);
+            for (auto i : *Loop_CFG)
+            {
+                // i->dump();
+                // i->getLoopTarget()->dumpColor();
+
+                // if(i != &Loop_CFG->getEntry() && i!=&Loop_CFG->getExit())
+                // {
+                //     for (int i = 0; i < LayerAmount; ++i)
+                //         cout << "\t";
+                //     cout << "B";
+                //     cout << i->getBlockID() << endl;
+                // }
+
+                // //獲得嵌套循環體
+                // if (auto target = i->getLoopTarget())
+                // {
+                //     // printStmt(target);
+                //     if(target != stmt)
+                //         check_CFG(const_cast<Stmt *>(target),LayerAmount+1);
+                // }
+
+                // for (auto element : *i) //Show Element in CFGBlock
+                // {
+                //     if (element.getKind() == CFGElement::Statement)
+                //     {
+                //         CFGStmt *tmp = (CFGStmt *)&element;
+                //         printStmt(tmp->getStmt());
+                //     }
+                // }
+
+                // cout << "----------------------" << endl;
+            }
+
+            LangOptions LangOpts;
+            LangOpts.CPlusPlus = true;
+            Loop_CFG->dump(LangOpts,true);
+            return true;
+        }
 
     public:
         // LoopVisitor(const ASTContext &ctx, const SourceManager &sm, clang::LiveVariables *liveness)
-        //     : CTX(ctx), sm(sm), LivenessResult(liveness) {}  
-        LoopVisitor(const ASTContext &ctx, const SourceManager &sm,const FunctionDecl* funDecl)
-            : CTX(ctx), sm(sm),funDecl(funDecl) {}
+        //     : CTX(ctx), sm(sm), LivenessResult(liveness) {}
+        LoopVisitor(const ASTContext &ctx, const SourceManager &sm, const FunctionDecl *funDecl)
+            : CTX(ctx), sm(sm), funDecl(funDecl) {}
 
         const vector<DefectInfo> &getStmts() const { return stmts; }
 
         bool VisitWhileStmt(WhileStmt *stmt) //when find while program point enter this function
         {
             bool ExprResult = check_Expresion(stmt);
-            bool CFGResult = check_CFG(stmt);
+            bool CFGResult = check_CFG(stmt,0);
             // return ExprResult && CFGResult;
 
             // auto CondDel = stmt->getConditionVariableDeclStmt();
             // printStmt(CondDel,sm);
             // cout << LivenessResult->isLive(stmt,CondDel) <<endl<<endl;
-
 
             return ExprResult;
         }
@@ -143,11 +196,14 @@ bool check_CFG(Stmt* stmt)
         {
             bool ExprResult = check_Expresion(stmt);
             auto LoopInc = stmt->getInc();
+
+            printStmt(LoopInc,&sm);
+
             if (!LoopInc)
             {
                 stmts.push_back({stmt, "缺少控制變量變化條件"});
             }
-            bool CFGResult = check_CFG(stmt);
+            bool CFGResult = check_CFG(stmt,0);
             // return ExprResult && CFGResult;
             // auto CondDel = stmt->getConditionVariableDeclStmt();
             // printStmt(CondDel,sm);
@@ -158,30 +214,30 @@ bool check_CFG(Stmt* stmt)
 
 } //namespace
 
-bool LoopChecker::check_CFG(std::unique_ptr<clang::CFG> &cfg, const ASTContext &ctx, const FunctionDecl *funDecl)
-{
-    if (!cfg)
-        return false;
-
-    // LangOptions LangOpts;
-    // LangOpts.CPlusPlus = true;
-    // CFG->print(outs(),LangOpts,5 );
-
-    //TODO: Need to check  whether CFGLoopExit Block exsit in CFG
-    // for (auto it : cfg)
-    // {
-    //     it;
-    // }
-
-    //TODO:Data FLow Analyze
-
-    //TODO get Loop Control Variables in result
-    // result->dumpStmtLiveness(sm);
-    // result->isLive()
-
-    //Avalible Expression Analyze ?
-    return true;
-}
+// bool LoopChecker::check_CFG(std::unique_ptr<clang::CFG> &cfg, const ASTContext &ctx, const FunctionDecl *funDecl)
+// {
+//     if (!cfg)
+//         return false;
+//
+//     // LangOptions LangOpts;
+//     // LangOpts.CPlusPlus = true;
+//     // CFG->print(outs(),LangOpts,5 );
+//
+//     //TODO: Need to check  whether CFGLoopExit Block exsit in CFG
+//     // for (auto it : cfg)
+//     // {
+//     //     it;
+//     // }
+//
+//     //TODO:Data FLow Analyze
+//
+//     //TODO get Loop Control Variables in result
+//     // result->dumpStmtLiveness(sm);
+//     // result->isLive()
+//
+//     //Avalible Expression Analyze ?
+//     return true;
+// }
 
 void LoopChecker::getEntryFunc()
 {
@@ -211,8 +267,7 @@ std::vector<Defect> LoopChecker::check()
         const ASTContext &ASTContext = funDecl->getASTContext();
         auto &sm = ASTContext.getSourceManager();
 
-        auto &CurrentFuncCFG = manager->getCFG(func);
-        
+        // auto &CurrentFuncCFG = manager->getCFG(func);
 
         //Get Liveness Result
         // clang::AnalysisDeclContextManager AM(const_cast<clang::ASTContext &>(ASTContext));
@@ -223,7 +278,7 @@ std::vector<Defect> LoopChecker::check()
 
         //Traverse AST
         // LoopVisitor vistor(ASTContext, sm, result);
-        LoopVisitor vistor(ASTContext, sm,funDecl);
+        LoopVisitor vistor(ASTContext, sm, funDecl);
         vistor.TraverseStmt(stmts);
 
         // check_CFG(CurrentFuncCFG,ASTContext,funDecl);
