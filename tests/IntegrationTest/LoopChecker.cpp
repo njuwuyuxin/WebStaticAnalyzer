@@ -36,4 +36,9 @@ void Test2()
     {
         // cout<<"Test for range!"<<endl;
     }
+
+    for(unsigned int j = 0;j<1;)
+    {
+        
+    }
 }

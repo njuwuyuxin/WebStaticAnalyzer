@@ -1,10 +1,11 @@
 #include "checkers/LoopChecker.h"
-#include "clang/Analysis/Analyses/LiveVariables.h"
-#include "clang/Analysis/AnalysisDeclContext.h"
+// #include "clang/Analysis/Analyses/LiveVariables.h"
+// #include "clang/Analysis/AnalysisDeclContext.h"
+
+#include <llvm/ADT/SCCIterator.h>
 
 namespace
 {
-
     static inline void printStmt(const Stmt *stmt, const SourceManager &sm, string info = "")
     { //Originate for ZeroChecker
         string begin = stmt->getBeginLoc().printToString(sm);
@@ -27,16 +28,16 @@ namespace
 
         vector<DefectInfo> stmts;
         const ASTContext &CTX;
-        // const FunctionDecl *funDecl;
+        const FunctionDecl *funDecl;
 
         //Source Manager
         const SourceManager &sm;
-        clang::LiveVariables * LivenessResult;
+        // clang::LiveVariables *LivenessResult;
 
         bool check_Expresion(Stmt *stmt)
         {
             Expr *conditionExpr = nullptr;
-            VarDecl* CondDecl = nullptr;
+            VarDecl *CondDecl = nullptr;
             // bool CondLiveness = false;
 
             if (ForStmt::classof(stmt))
@@ -69,7 +70,7 @@ namespace
 
             if (conditionExpr != nullptr)
             {
-                printStmt(conditionExpr, sm);
+                // printStmt(conditionExpr, sm);
                 llvm::APSInt Result;
                 //檢查表達式中是否值恆為常數
                 if (conditionExpr->isIntegerConstantExpr(Result, CTX)) //Check wheather the Expression can be fold into a integer
@@ -88,31 +89,52 @@ namespace
             else
             { //No Condition Expression in the loop
                 Defect_Description = "循環缺乏跳出條件";
-                printStmt(stmt, sm, Defect_Description);
-                
+                // printStmt(stmt, sm, Defect_Description);
             }
 
-            if(Defect_Description!="None")
+            if (Defect_Description != "None")
                 stmts.push_back({stmt,                 //defect Statement
                                  Defect_Description}); //Defect Info
-            
+
             return true;
         }
 
+bool check_CFG(Stmt* stmt)
+{
+    printStmt(stmt,sm);
+    CFG::BuildOptions BO;
+    // BO.AddLoopExit = true;
+    ASTContext& temp = const_cast<ASTContext&>(CTX);
+    auto Loop_CFG = CFG::buildCFG(funDecl,stmt,&temp,BO);
+    for(auto i:*Loop_CFG)
+    {
+        
+    }
+
+    LangOptions LangOpts;
+    LangOpts.CPlusPlus = true;
+    Loop_CFG->dump(LangOpts,true);
+    return true;
+}
+
     public:
-        LoopVisitor(const ASTContext &ctx,const SourceManager &sm,clang::LiveVariables *liveness)
-            : CTX(ctx), sm(sm), LivenessResult(liveness){}
+        // LoopVisitor(const ASTContext &ctx, const SourceManager &sm, clang::LiveVariables *liveness)
+        //     : CTX(ctx), sm(sm), LivenessResult(liveness) {}  
+        LoopVisitor(const ASTContext &ctx, const SourceManager &sm,const FunctionDecl* funDecl)
+            : CTX(ctx), sm(sm),funDecl(funDecl) {}
 
         const vector<DefectInfo> &getStmts() const { return stmts; }
 
         bool VisitWhileStmt(WhileStmt *stmt) //when find while program point enter this function
         {
             bool ExprResult = check_Expresion(stmt);
-            // bool CFGResult = check_CFG();
+            bool CFGResult = check_CFG(stmt);
             // return ExprResult && CFGResult;
 
             // auto CondDel = stmt->getConditionVariableDeclStmt();
+            // printStmt(CondDel,sm);
             // cout << LivenessResult->isLive(stmt,CondDel) <<endl<<endl;
+
 
             return ExprResult;
         }
@@ -121,13 +143,14 @@ namespace
         {
             bool ExprResult = check_Expresion(stmt);
             auto LoopInc = stmt->getInc();
-            if(!LoopInc)
+            if (!LoopInc)
             {
-                    stmts.push_back({stmt,"缺少控制變量變化條件"});
+                stmts.push_back({stmt, "缺少控制變量變化條件"});
             }
-            // bool CFGResult = check_CFG();
+            bool CFGResult = check_CFG(stmt);
             // return ExprResult && CFGResult;
             // auto CondDel = stmt->getConditionVariableDeclStmt();
+            // printStmt(CondDel,sm);
             // cout << LivenessResult->isLive(stmt,CondDel) <<endl<<endl;
             return ExprResult;
         }
@@ -135,7 +158,7 @@ namespace
 
 } //namespace
 
-bool LoopChecker::check_CFG(std::unique_ptr<clang::CFG> &cfg,const ASTContext& ctx,const FunctionDecl *funDecl)
+bool LoopChecker::check_CFG(std::unique_ptr<clang::CFG> &cfg, const ASTContext &ctx, const FunctionDecl *funDecl)
 {
     if (!cfg)
         return false;
@@ -156,7 +179,7 @@ bool LoopChecker::check_CFG(std::unique_ptr<clang::CFG> &cfg,const ASTContext& c
     // result->dumpStmtLiveness(sm);
     // result->isLive()
 
-        //Avalible Expression Analyze ?
+    //Avalible Expression Analyze ?
     return true;
 }
 
@@ -184,27 +207,26 @@ std::vector<Defect> LoopChecker::check()
     for (auto func : functions)
     {
         const FunctionDecl *funDecl = manager->getFunctionDecl(func); //get function declaration
-        auto stmts = funDecl->getBody();                               //get body of the function through getbody() -> Clang::Stmt type
+        auto stmts = funDecl->getBody();                              //get body of the function through getbody() -> Clang::Stmt type
         const ASTContext &ASTContext = funDecl->getASTContext();
         auto &sm = ASTContext.getSourceManager();
 
         auto &CurrentFuncCFG = manager->getCFG(func);
-
+        
 
         //Get Liveness Result
-        clang::AnalysisDeclContextManager AM(const_cast<clang::ASTContext &>(ASTContext));
-        auto AnalysisDeclContext = AM.getContext(funDecl);
-        auto result = LiveVariables::computeLiveness(*AnalysisDeclContext, false);
+        // clang::AnalysisDeclContextManager AM(const_cast<clang::ASTContext &>(ASTContext));
+        // auto AnalysisDeclContext = AM.getContext(funDecl);
+        // auto result = LiveVariables::computeLiveness(*AnalysisDeclContext, false);
 
         // result->dumpStmtLiveness(sm);
 
         //Traverse AST
-        LoopVisitor vistor(ASTContext, sm,result);
+        // LoopVisitor vistor(ASTContext, sm, result);
+        LoopVisitor vistor(ASTContext, sm,funDecl);
         vistor.TraverseStmt(stmts);
 
         // check_CFG(CurrentFuncCFG,ASTContext,funDecl);
-
-
 
         auto DefectList = vistor.getStmts();
 
