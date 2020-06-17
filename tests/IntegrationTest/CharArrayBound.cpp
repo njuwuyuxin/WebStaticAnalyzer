@@ -1,13 +1,17 @@
 #include <cstdio>
 #include <cstring>
 
-void foo() {
+int foo() {
   char str[10] = "example";
+  int a = 3;
+  int b = 0;
+  b = a + 5;
 
-  str[7] = '\0';
-  str[8] = '\0';
+  str[b * 2] = '\0';
   7[str] = '\0';
-  8[str] = '\0';
+  (a + b)[str] = '\0';
+
+  return b;
 }
 
 int TestCharArrayBound() {
@@ -18,7 +22,7 @@ int TestCharArrayBound() {
     str[i] = 0;
   }
 
-  foo();
+  str[foo()] = 0;
 
   return 0;
 }
