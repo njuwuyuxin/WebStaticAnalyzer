@@ -42,4 +42,5 @@ public:
 private:
   void getEntryFunc();
   ASTFunction *entryFunc;
+  bool check_CFG(std::unique_ptr<clang::CFG> &,const ASTContext&,const FunctionDecl *);
 };
