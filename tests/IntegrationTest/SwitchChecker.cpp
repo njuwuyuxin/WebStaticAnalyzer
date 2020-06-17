@@ -3,6 +3,26 @@ using namespace std;
 enum Week {Mon,Tue,Wed};
 enum Month {Jan,Feb,Mar,Apr,May,June,July};
 
+void TestExprSwitch(){
+	int i=0;
+	int a=100;
+	int b=3;
+	switch(i++){
+		case 0:a=200;break;
+		case 1:a=300;break;
+	}
+
+	switch(i+=2){
+		case 0:a=200;break;
+		case 1:a=300;break;
+	}
+
+	switch(b+i/(b-i)){
+		case 0:a=200;break;
+		case 1:a=300;break;
+	}
+}
+
 void intTestDefault(){
 	int b=0;
 	Week week=Mon;

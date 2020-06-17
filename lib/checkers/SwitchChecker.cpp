@@ -29,6 +29,10 @@ public:
     Expr* conditionExpr = E->getCond();
     if(conditionExpr!=NULL){
       Decl* cond_decl = conditionExpr->getReferencedDeclOfCallee();
+      if(cond_decl==NULL){
+        //如果无法得到条件变量的声明语句，说明条件变量为表达式，不需进行后续分析
+        return true;
+      }
       TypeDecl* TD = (TypeDecl*)(cond_decl);
       const clang::Type* type = TD->getTypeForDecl();   //获取枚举变量定义中的类型信息
       if(type->isEnumeralType()==false)
