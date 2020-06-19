@@ -4,13 +4,23 @@
 
 // #include <llvm/ADT/SCCIterator.h>
 
+#define Debug
+
+#ifdef Debug
+static inline void debug(string target)
+{
+    std::cout << target << endl;
+}
+#endif
+
 namespace
 {
-    static inline void printStmt(const Stmt *stmt, const SourceManager *sm = nullptr, string info = "",int indent = 0)
+    static inline void printStmt(const Stmt *stmt, const SourceManager *sm = nullptr, string info = "", int indent = 0)
     { //Originate for ZeroChecker
-        if(!stmt)
-        {    
-            cout<<"!!! The Given Satement is Empty------------------------------------"<<endl;
+#ifdef Debug
+        if (!stmt)
+        {
+            debug("!!!                 The Given Satement is Empty                 !!!");
             return;
         }
 
@@ -20,10 +30,9 @@ namespace
             cout << begin << endl;
         }
 
+        for (int i = 0; i < indent; ++i)
+            cout << "\t";
 
-        for(int i=0;i<indent;++i)
-            cout<<"\t";
-        
         LangOptions LangOpts;
         LangOpts.CPlusPlus = true;
         stmt->printPretty(outs(), nullptr, LangOpts, 5);
@@ -34,6 +43,7 @@ namespace
             cout << " " << info;
         }
         cout << endl;
+#endif
     }
 
     class LoopVisitor : public RecursiveASTVisitor<LoopVisitor>
@@ -53,11 +63,36 @@ namespace
         const SourceManager &sm;
         // clang::LiveVariables *LivenessResult;
 
+        //Recursively Find Loop Exit(break or return ) on Statement-Level
+        bool FindLoopExit(Stmt *target)
+        {
+            bool ret = false;
+            if(target)
+            {
+                if (BreakStmt::classof(target) || ReturnStmt::classof(target))
+                    return true;
+
+                //Check target's childeren
+                for (auto it : target->children())
+                {
+                    ret = FindLoopExit(it);
+                }
+            }
+            return ret;
+        }
+
         bool check_Expresion(Stmt *stmt)
         {
             Expr *conditionExpr = nullptr;
             VarDecl *CondDecl = nullptr;
             // bool CondLiveness = false;
+
+            printStmt(stmt);
+            debug("Current Stmt Child");
+            for (auto i : stmt->children()) //dump all child
+            {
+                i->dumpColor();
+            }
 
             if (ForStmt::classof(stmt))
             {
@@ -71,7 +106,7 @@ namespace
             }
             else
             {
-                std::cout << "Something Wrong with check Expression!" << endl;
+                debug("Something Wrong with check Expression!");
                 return false;
             }
 
@@ -87,6 +122,13 @@ namespace
 
             string Defect_Description("None");
 
+            auto exit = FindLoopExit(stmt);
+            #ifdef Debug
+                cout<<"Loop Exit : "<<exit<<endl;
+            #endif
+
+            //Data Flow Analysis require for a Deeper check
+            auto DFA_require = false;
             if (conditionExpr != nullptr)
             {
                 // printStmt(conditionExpr, sm);
@@ -96,37 +138,55 @@ namespace
                 {
                     if (Result != 0) //if true and the Expression result is always not Zero, then we find an Infinety Loop
                     {
-                        Defect_Description = "循環條件恆爲" + Result.toString(10);
-                        printStmt(conditionExpr,nullptr,Defect_Description);
+                        if (!exit)
+                        {
+                            Defect_Description = "循環條件恆爲" + Result.toString(10) + ", 且缺乏break/return語句";
+                            printStmt(conditionExpr, nullptr, Defect_Description);
+                        }
+                        else
+                        {
+                            DFA_require = true;
+                        }
                     }
                 }
                 else //conditionExpr is a Varient
                 {
-                    printStmt(conditionExpr, &sm, "Condition cannot fold into Integer!");
+                    // printStmt(conditionExpr, &sm, "Condition cannot fold into Integer!");
                     // cout<<"Condition Liveness : "<<CondLiveness<<endl;
+                        DFA_require = true;
                 }
             }
-            else
-            { //No Condition Expression in the loop
-                Defect_Description = "循環缺乏跳出條件";
-                // printStmt(stmt, sm, Defect_Description);
+            else if (!exit)
+            { //No Condition Expression in the loop and has no break or return statement
+                Defect_Description = "循環缺乏跳出條件 (設定循環變量範圍語句 或 break、return語句)";
+                printStmt(stmt, &sm, Defect_Description);
             }
+            else
+            {
+                DFA_require = true;
+            }
+
+            #ifdef Debug
+            if(DFA_require)
+                debug("Need Further Data Flow Analysis");
+            debug("");
+            debug("");
+            #endif
 
             if (Defect_Description != "None")
                 stmts.push_back({stmt,                 //defect Statement
                                  Defect_Description}); //Defect Info
 
-            return true;
+            return DFA_require;
         }
 
         //LayerAmount : 嵌套層數
-        bool check_CFG(Stmt *stmt,int LayerAmount)
+        bool check_CFG(Stmt *stmt, int LayerAmount)
         {
-            if(LayerAmount)
-                printStmt(stmt, nullptr,"",LayerAmount);
-            else
-                printStmt(stmt, &sm);
-
+            // if (LayerAmount)
+            //     printStmt(stmt, nullptr, "", LayerAmount);
+            // else
+            //     printStmt(stmt, &sm);
 
             CFG::BuildOptions BO;
             // BO.AddLoopExit = true;
@@ -165,9 +225,9 @@ namespace
                 // cout << "----------------------" << endl;
             }
 
-            LangOptions LangOpts;
-            LangOpts.CPlusPlus = true;
-            Loop_CFG->dump(LangOpts,true);
+            // LangOptions LangOpts;
+            // LangOpts.CPlusPlus = true;
+            // Loop_CFG->dump(LangOpts, true);
             return true;
         }
 
@@ -181,34 +241,42 @@ namespace
 
         bool VisitWhileStmt(WhileStmt *stmt) //when find while program point enter this function
         {
-            bool ExprResult = check_Expresion(stmt);
-            bool CFGResult = check_CFG(stmt,0);
-            // return ExprResult && CFGResult;
+            bool DFA_require = check_Expresion(stmt);
+            // bool CFGResult = check_CFG(stmt, 0);
+
+            if (DFA_require)
+            {
+                //TODO : Data Flow Analysis
+            }
 
             // auto CondDel = stmt->getConditionVariableDeclStmt();
             // printStmt(CondDel,sm);
             // cout << LivenessResult->isLive(stmt,CondDel) <<endl<<endl;
 
-            return ExprResult;
+            return true;
         }
 
         bool VisitForStmt(ForStmt *stmt) //when find for program point enter this function
         {
-            bool ExprResult = check_Expresion(stmt);
-            auto LoopInc = stmt->getInc();
+            bool DFA_require = check_Expresion(stmt);
 
-            printStmt(LoopInc,&sm);
+            // printStmt(LoopInc, &sm);
 
-            if (!LoopInc)
+            if (!stmt->getInc())
             {
-                stmts.push_back({stmt, "缺少控制變量變化條件"});
+                stmts.push_back({stmt, "(warning)缺少控制變量變化條件"});
             }
-            bool CFGResult = check_CFG(stmt,0);
+
+            if (DFA_require)
+            {
+                //TODO : Data Flow Analysis
+            }
+            // bool CFGResult = check_CFG(stmt, 0);
             // return ExprResult && CFGResult;
             // auto CondDel = stmt->getConditionVariableDeclStmt();
             // printStmt(CondDel,sm);
             // cout << LivenessResult->isLive(stmt,CondDel) <<endl<<endl;
-            return ExprResult;
+            return true;
         }
     };
 
