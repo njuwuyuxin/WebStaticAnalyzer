@@ -1,3 +1,11 @@
+/*
+2020 06 19
+優化循環控制條件的檢測，精細化檢測條件，降低誤報率(check break/return statement in loop)
+
+*/
+
+
+
 #include "checkers/LoopChecker.h"
 // #include "clang/Analysis/Analyses/LiveVariables.h"
 // #include "clang/Analysis/AnalysisDeclContext.h"
