@@ -54,6 +54,7 @@ public:
                 CallGraph *call_graph, Config *configure)
       : BasicChecker(resource, manager, call_graph, configure){};
   vector<Defect> check();
+  void report(Expr *expr, int level);
 
 private:
   vector<Defect> defects;

@@ -23,6 +23,7 @@ public:
                CallGraph *call_graph, Config *configure);
 
   virtual std::vector<Defect> check() = 0;
+  virtual void report(Expr *expr, int level) {}
 };
 
 #endif

@@ -1,4 +1,5 @@
 #include "checkers/ZeroChecker.h"
+#include "framework/Analyzer.h"
 
 namespace {
 
@@ -10,6 +11,17 @@ static inline void printStmt(const Stmt* stmt, const SourceManager &sm){
   stmt->printPretty(outs(), nullptr, LangOpts);
   cout << endl;
 }
+
+const string DefectInfo[2][2] = {
+  {
+    "error:操作符'/'的右操作数是结果为0的常数表达式",
+    "error:操作符'%'的右操作数是结果为0的常数表达式"
+  },
+  {
+    "warning:操作符'/'的右操作数可能是结果为0的变量表达式",
+    "warning:操作符'%'的右操作数可能是结果为0的变量表达式"
+  }
+};
 
 class ZeroVisitor : public RecursiveASTVisitor<ZeroVisitor> {
 private:
@@ -86,10 +98,24 @@ vector<Defect> ZeroChecker::check() {
         visitor.TraverseStmt(stmt);
         auto dfts = visitor.getDefects();
         defects.insert(defects.end(),dfts.begin(),dfts.end());
-        visitFunctionStmts(funDecl->getBody());
+        //visitFunctionStmts(funDecl->getBody());
+        Analyzer analyzer;
+        analyzer.bindZeroChecker(this);
+        analyzer.DealStmt(funDecl->getBody());
     }
     defectsClearSamePlace();
     return defects;
+}
+
+void ZeroChecker::report(Expr *expr, int level) {
+  Defect d;
+  BinaryOperator *E = (BinaryOperator *)expr;
+  Expr* ro = E->getRHS()->IgnoreParenCasts()->IgnoreImpCasts();
+  int opt = E->getOpcodeStr() == "/" ? 0 : 1;
+  auto &sm = funDecl->getASTContext().getSourceManager();
+  d.location = ro->getBeginLoc().printToString(sm);
+  d.info = DefectInfo[level][opt];
+  defects.push_back(d);
 }
 
 void ZeroChecker::visitFunctionStmts(Stmt *stmt){
