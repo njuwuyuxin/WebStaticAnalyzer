@@ -1,7 +1,8 @@
 
 #include <iostream>
 using namespace std;
-#ifdef A
+// #define NormalLoopTest
+#ifdef NormalLoopTest
 void NormalLoop()
 {
     int x = 0;
@@ -21,9 +22,21 @@ void NormalLoop()
         if(x>=0)
             break;
     }
+
+    while(true)
+    {
+        break;
+    }
+
+    for(int i = 0;i<100;++i)
+    {
+        break;
+    }
 }
 #endif
 
+// #define SimpleTest
+#ifdef SimpleTest
 void TestWhile()
 {
     while (1)
@@ -37,26 +50,54 @@ void TestWhile()
         if(x > 0)
             break;
     }
+
+    while(x)
+    {
+
+    }
 }
 
 void TestFor()
 {
     for(int i=0;;i++)
     {
-        // cout<<"Test!"<<endl;
-    }
-
-    for(unsigned int i = 0;i>0;i++)
-    {
-        // cout<<"Test for range!"<<endl;
+        break;
     }
 
     for(unsigned int j = 0;j<1;)
     {
 
     }
+
+    for(unsigned int i = 0;i>0;i++)
+    {
+        
+    }
+
 }
-#ifdef B
+#endif
+
+#ifdef CondExprTest
+void TestLoop()
+{  int i=0;
+    for( i= 0;;i++)
+    {
+        if(i>10)//can this be detect as a condition expression ? Ans : Nope!!!
+            break;
+    }
+
+i=0;
+    while(true)
+    {
+        if(i>10)
+            break;
+    }
+}
+#endif
+
+
+#define NestedLoop
+#ifdef NestedLoop
 void TestNestedLoop()
 {
     for(int i = 0;i<100;++i)
