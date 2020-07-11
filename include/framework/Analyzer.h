@@ -1,19 +1,31 @@
 #include "framework/BasicChecker.h"
+#include "clang/AST/Expr.h"
+#include <cstdint>
+#include <memory>
 
 using namespace clang;
-using namespace std;
 
 class Analyzer {
 public:
   void bindZeroChecker(BasicChecker *checker) { zeroChecker = checker; }
+  void bindCharArrayChecker(BasicChecker *checker) {
+    charArrayChecker = checker;
+  }
 
   void printValueList() {
     for (auto i : ValueList) {
-      cout << "possible value of :" << i.var->getNameAsString() << endl;
+      std::cout << "possible value of :" << i.var->getNameAsString()
+                << std::endl;
       for (auto j : i.PosValue) {
-        cout << j << " ";
+        std::cout << j << " ";
       }
-      cout << endl;
+      if (i.var_type == V_CHAR_ARRAY) {
+        auto values = std::static_pointer_cast<strSet>(i.values);
+        for (auto &&s : *values) {
+          std::cout << s << " ";
+        }
+      }
+      std::cout << std::endl;
     }
   }
 
@@ -27,24 +39,45 @@ public:
   void DealDoStmt(DoStmt *dst);
 
 private:
+  using uintSet = std::set<uint64_t>;
+  using strSet = std::set<std::string>;
+
   enum { ERROR, WARNING };
-
-  enum VarType { V_INT, V_UNSIGNED_INT, V_FLOAT, V_UNSIGNED_FLOAT, UNKNOWN };
-
-  struct VarValue {
-    VarDecl *var;
-    VarType var_type;
-    bool isDefined;
-    set<float> PosValue;
-    VarValue() {
-      var = NULL;
-      var_type = UNKNOWN;
-      isDefined = false;
-    }
+  enum VarType {
+    V_INT,
+    V_UNSIGNED_INT,
+    V_FLOAT,
+    V_UNSIGNED_FLOAT,
+    V_CHAR,
+    V_CHAR_ARRAY,
+    UNKNOWN
   };
 
-  vector<VarValue> ValueList;
+  struct VarValue {
+    VarDecl *var = nullptr;
+    VarType var_type = UNKNOWN;
+    bool isDefined = false;
+    std::set<float> PosValue;
+    std::shared_ptr<void> values;
+  };
+
+  std::vector<VarValue> ValueList;
   BasicChecker *zeroChecker = nullptr;
+  BasicChecker *charArrayChecker = nullptr;
+
+  void report(BinaryOperator *E, const VarValue &var) {
+    if (zeroChecker != nullptr) {
+      zeroChecker->report(E, var.PosValue.size() > 1 ? WARNING : ERROR);
+    }
+  }
+
+  void report(ArraySubscriptExpr *E, const VarValue &var) {
+    if (charArrayChecker != nullptr) {
+      charArrayChecker->report(
+          E, std::static_pointer_cast<strSet>(var.values)->size() > 1 ? WARNING
+                                                                      : ERROR);
+    }
+  }
 
   bool judgeConsist(VarValue v1, VarValue v2) {
     if (v2.PosValue.size() == 0) {
@@ -62,8 +95,8 @@ private:
     if (waitToFind == nullptr)
       return -1;
     for (int i = 0; i < ValueList.size(); i++) {
-      if (waitToFind->getNameAsString() ==
-          ValueList[i].var->getNameAsString()) {
+      if (waitToFind->getID() ==
+          ValueList[i].var->getID()) {
         return i;
       }
     }
@@ -76,6 +109,7 @@ private:
   VarValue DealConditionalOperator(ConditionalOperator *E);
   VarValue DealDivOp(VarValue v1, VarValue v2, BinaryOperator *E);
   VarValue DealModOp(VarValue v1, VarValue v2, BinaryOperator *E);
+  VarValue DealArraySubscriptExpr(ArraySubscriptExpr *expr);
 
   VarValue DealAddOp(VarValue v1, VarValue v2) {
     VarValue v3;

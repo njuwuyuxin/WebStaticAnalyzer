@@ -29,7 +29,7 @@ namespace{
   }; 
 }
 
-vector<Defect> CompareChecker::check(){
+void CompareChecker::check(){
   //getEntryFunc();
   //vector<ASTFunction *> topLevelFuncs = call_graph->getTopLevelFunctions();
   //out of function
@@ -54,14 +54,14 @@ vector<Defect> CompareChecker::check(){
       push_defect(s, context);
     //RecursiveFind(stmt, context);
   }
-  return defects;
 }
 
 void CompareChecker::push_defect(Stmt* s, const ASTContext& context){
   Defect d;
-  d.location = s->getBeginLoc().printToString(context.getSourceManager());
-  d.info = "比较运算中混用了有无符号数";
-  defects.push_back(d);
+  auto &[location, info] = d;
+  location = s->getBeginLoc().printToString(context.getSourceManager());
+  info = "比较运算中混用了有无符号数";
+  addDefect(move(d));
 }
 
 /*

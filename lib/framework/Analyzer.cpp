@@ -1,4 +1,9 @@
 #include "framework/Analyzer.h"
+#include <bits/stdint-uintn.h>
+#include <initializer_list>
+#include <memory>
+
+using namespace std;
 
 void Analyzer::DealStmt(Stmt *stmt) {
   if (stmt == nullptr)
@@ -40,30 +45,40 @@ void Analyzer::DealVarDecl(VarDecl *var) {
   VarValue new_var;
   new_var.var = var;
   if (var->hasInit()) {
+    new_var.isDefined = true;
     var->evaluateValue();
+    if (auto value = var->getEvaluatedValue(); value != nullptr) {
+      switch (value->getKind()) {
+      case APValue::Int: {
+        int64_t val = value->getInt().getExtValue();
+        new_var.var_type = V_INT;
+        new_var.PosValue.insert(val);
+      } break;
+      case APValue::Float: {
+        float val = value->getFloat().convertToFloat();
+        new_var.var_type = V_FLOAT;
+        new_var.PosValue.insert(val);
+      } break;
+      case APValue::Array:
+        if (var->getType().getAsString().find("char ") != string::npos) {
+          new_var.var_type = V_CHAR_ARRAY;
+          string str(value->getArraySize(), '\0');
+          for (unsigned int i = 0; i < value->getArrayInitializedElts(); ++i) {
+            str[i] = value->getArrayInitializedElt(i).getInt().getExtValue();
+          }
+          new_var.values = make_shared<strSet>(initializer_list<string>{str});
+        }
+        break;
+      default: {
+        new_var.PosValue = (DealRValExpr(var->getInit())).PosValue;
+      } break;
+      }
+    } else {
+      // new_var.PosValue = DealRValExpr(var->getInit());
+    }
   } else {
     new_var.isDefined = false;
     new_var.PosValue.insert(0);
-  }
-  if (var->getEvaluatedValue() != nullptr) {
-    new_var.isDefined = true;
-    switch (var->getEvaluatedValue()->getKind()) {
-    case APValue::Int: {
-      int64_t val = var->getEvaluatedValue()->getInt().getExtValue();
-      new_var.var_type = V_INT;
-      new_var.PosValue.insert(val);
-    } break;
-    case APValue::Float: {
-      float val = var->getEvaluatedValue()->getFloat().convertToFloat();
-      new_var.var_type = V_FLOAT;
-      new_var.PosValue.insert(val);
-    } break;
-    default: {
-      new_var.PosValue = (DealRValExpr(var->getInit())).PosValue;
-    } break;
-    }
-  } else {
-    // new_var.PosValue = DealRValExpr(var->getInit());
   }
   ValueList.push_back(new_var);
 }
@@ -244,7 +259,7 @@ void Analyzer::DealWhileStmt(WhileStmt *wst) {
 
 void Analyzer::DealDoStmt(DoStmt *dst) { DealCompoundStmt(dst->getBody()); }
 
-Analyzer::VarValue Analyzer::DealRValExpr(Expr *expr) {
+auto Analyzer::DealRValExpr(Expr *expr) -> VarValue {
   string stmt_class = expr->getStmtClassName();
   VarValue PosResult;
   if (stmt_class == "ParenExpr") {
@@ -273,6 +288,10 @@ Analyzer::VarValue Analyzer::DealRValExpr(Expr *expr) {
     PosResult.var_type = V_FLOAT;
     PosResult.PosValue.insert(
         ((FloatingLiteral *)expr)->getValue().convertToFloat());
+  } else if (stmt_class == "CharacterLiteral") {
+    PosResult.var_type = V_CHAR;
+    PosResult.values = make_shared<uintSet>(
+        initializer_list<uint64_t>{((CharacterLiteral *)expr)->getValue()});
   } else if (stmt_class == "ImplicitCastExpr") {
     string sub_class =
         (((ImplicitCastExpr *)expr)->getSubExpr())->getStmtClassName();
@@ -288,9 +307,7 @@ Analyzer::VarValue Analyzer::DealRValExpr(Expr *expr) {
     } else if (sub_class == "UnaryOperator") {
       PosResult = DealUnaryOperator(
           (UnaryOperator *)(((ImplicitCastExpr *)expr)->getSubExpr()));
-    } else if (sub_class == "ConditionalOperator") {
-      return DealRValExpr(((ImplicitCastExpr *)expr)->getSubExpr());
-    } else if (sub_class == "ImplicitCastExpr") {
+    } else {
       return DealRValExpr(((ImplicitCastExpr *)expr)->getSubExpr());
     }
   } else if (stmt_class == "DeclRefExpr") {
@@ -307,26 +324,63 @@ Analyzer::VarValue Analyzer::DealRValExpr(Expr *expr) {
     PosResult = DealUnaryOperator((UnaryOperator *)expr);
   } else if (stmt_class == "ConditionalOperator") {
     PosResult = DealConditionalOperator((ConditionalOperator *)expr);
+  } else if (stmt_class == "ArraySubscriptExpr") {
+    PosResult = DealArraySubscriptExpr((ArraySubscriptExpr *)expr);
   }
   return PosResult;
 }
 
-Analyzer::VarValue Analyzer::DealBinaryOperator(BinaryOperator *E) {
+auto Analyzer::DealBinaryOperator(BinaryOperator *E) -> VarValue {
   VarValue PosResult;
   switch (E->getOpcode()) {
   case BO_Assign: {
     string LClass(E->getLHS()->getStmtClassName());
-    if (LClass != "DeclRefExpr") {
-      return PosResult;
-    }
-    int pos =
-        FindVarInList((VarDecl *)(((DeclRefExpr *)(E->getLHS()))->getDecl()));
-    if (pos != -1) {
-      ValueList[pos].PosValue = (DealRValExpr(E->getRHS())).PosValue;
-      ValueList[pos].isDefined = true;
-      PosResult.PosValue.insert(1);
+    if (LClass == "DeclRefExpr") {
+      int pos =
+          FindVarInList((VarDecl *)(((DeclRefExpr *)(E->getLHS()))->getDecl()));
+      if (pos != -1) {
+        ValueList[pos].PosValue = (DealRValExpr(E->getRHS())).PosValue;
+        ValueList[pos].isDefined = true;
+        PosResult.PosValue.insert(1);
+      } else {
+        PosResult.PosValue.insert(0);
+      }
+    } else if (LClass == "ArraySubscriptExpr") {
+      auto arrayExpr = (ArraySubscriptExpr *)E->getLHS();
+      auto var = DealRValExpr(arrayExpr->getBase());
+      if (int pos = FindVarInList(var.var); pos != -1) {
+        auto idx = DealRValExpr(arrayExpr->getIdx());
+        auto rhs = DealRValExpr(E->getRHS());
+        if (idx.PosValue.empty() || rhs.values == nullptr) {
+          report(arrayExpr, var);
+          return PosResult;
+        }
+        auto rhsvalues = static_pointer_cast<uintSet>(rhs.values);
+        if (var.var_type == V_CHAR_ARRAY) {
+          auto values = static_pointer_cast<strSet>(ValueList[pos].values);
+          int len = values->cbegin()->length();
+          for (auto &&i : idx.PosValue) {
+            if (i >= len) {
+              report(arrayExpr, var);
+              return PosResult;
+            }
+            for (auto &&s : *values) {
+              for (auto &&c : *rhsvalues) {
+                if (auto end = s.find('\0'); end != string::npos && i > end) {
+                  report(arrayExpr, var);
+                }
+                if (s[i] != c) {
+                  string ns(s);
+                  ns[i] = c;
+                  values->insert(move(ns));
+                }
+              }
+            }
+          }
+        }
+      }
     } else {
-      PosResult.PosValue.insert(0);
+      return PosResult;
     }
   } break;
   case BO_Add: {
@@ -374,7 +428,7 @@ Analyzer::VarValue Analyzer::DealBinaryOperator(BinaryOperator *E) {
   return PosResult;
 }
 
-Analyzer::VarValue Analyzer::DealUnaryOperator(UnaryOperator *E) {
+auto Analyzer::DealUnaryOperator(UnaryOperator *E) -> VarValue {
   VarValue PosResult = DealRValExpr(E->getSubExpr());
   switch (E->getOpcode()) {
   case UO_PostInc: {
@@ -407,7 +461,7 @@ Analyzer::VarValue Analyzer::DealUnaryOperator(UnaryOperator *E) {
   return PosResult;
 }
 
-Analyzer::VarValue Analyzer::DealConditionalOperator(ConditionalOperator *E) {
+auto Analyzer::DealConditionalOperator(ConditionalOperator *E) -> VarValue {
   VarValue cond = DealRValExpr(E->getCond());
   if (cond.PosValue.find(0) != cond.PosValue.end()) {
     if (cond.PosValue.size() == 1) {
@@ -425,15 +479,13 @@ Analyzer::VarValue Analyzer::DealConditionalOperator(ConditionalOperator *E) {
   }
 }
 
-Analyzer::VarValue Analyzer::DealDivOp(VarValue v1, VarValue v2,
-                                       BinaryOperator *E) {
+auto Analyzer::DealDivOp(VarValue v1, VarValue v2, BinaryOperator *E)
+    -> VarValue {
   VarValue v3;
   for (auto i : v1.PosValue) {
     for (auto j : v2.PosValue) {
       if (j == 0) {
-        if (zeroChecker != nullptr) {
-          zeroChecker->report(E, WARNING);
-        }
+        report(E, v2);
         v3.PosValue.insert(0);
       } else {
         v3.PosValue.insert(i / j);
@@ -443,15 +495,13 @@ Analyzer::VarValue Analyzer::DealDivOp(VarValue v1, VarValue v2,
   return v3;
 }
 
-Analyzer::VarValue Analyzer::DealModOp(VarValue v1, VarValue v2,
-                                       BinaryOperator *E) {
+auto Analyzer::DealModOp(VarValue v1, VarValue v2, BinaryOperator *E)
+    -> VarValue {
   VarValue v3;
   for (auto i : v1.PosValue) {
     for (auto j : v2.PosValue) {
       if (j == 0) {
-        if (zeroChecker != nullptr) {
-          zeroChecker->report(E, WARNING);
-        }
+        report(E, v2);
         v3.PosValue.insert(0);
       } else {
         v3.PosValue.insert(((int)i) % ((int)j));
@@ -459,4 +509,30 @@ Analyzer::VarValue Analyzer::DealModOp(VarValue v1, VarValue v2,
     }
   }
   return v3;
+}
+
+auto Analyzer::DealArraySubscriptExpr(ArraySubscriptExpr *E) -> VarValue {
+  VarValue PosResult;
+  auto var = DealRValExpr(E->getBase());
+  auto idx = DealRValExpr(E->getIdx());
+  if (var.var_type == V_CHAR_ARRAY) {
+    auto values = static_pointer_cast<strSet>(var.values);
+    auto len = values->cbegin()->length();
+    for (auto &&i : idx.PosValue) {
+      if (i >= len) {
+        report(E, var);
+        return PosResult;
+      }
+      auto p = make_shared<uintSet>();
+      for (auto &&s : *values) {
+        if (auto end = s.find('\0'); end != string::npos && i > end) {
+          report(E, var);
+        }
+        p->insert(s[i]);
+      }
+      PosResult.var_type = V_CHAR;
+      PosResult.values = move(p);
+    }
+  }
+  return PosResult;
 }

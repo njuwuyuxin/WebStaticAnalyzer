@@ -2,7 +2,7 @@
 
 static llvm::cl::OptionCategory ToolingSampleCategory("Tooling Sample");
 
-vector<Defect> TemplateChecker::check() {
+void TemplateChecker::check() {
   readConfig();
   getEntryFunc();
   if (entryFunc != nullptr) {
@@ -16,8 +16,6 @@ vector<Defect> TemplateChecker::check() {
   LangOpts.CPlusPlus = true;
   std::unique_ptr<CFG>& cfg = manager->getCFG(entryFunc);
   cfg->dump(LangOpts, true);
-
-  return vector<Defect>();
 }
 
 void TemplateChecker::readConfig() {

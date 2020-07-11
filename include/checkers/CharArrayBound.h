@@ -12,6 +12,7 @@
 #include <clang/AST/Expr.h>
 #include <clang/AST/RecursiveASTVisitor.h>
 #include <clang/Analysis/CFG.h>
+#include <clang/Basic/SourceManager.h>
 #include <clang/Frontend/ASTConsumers.h>
 #include <clang/Frontend/ASTUnit.h>
 #include <clang/Frontend/CompilerInstance.h>
@@ -35,9 +36,11 @@ public:
   CharArrayBound(ASTResource *resource, ASTManager *manager,
                  CallGraph *call_graph, Config *configure)
       : BasicChecker(resource, manager, call_graph, configure){};
-  vector<Defect> check();
+  void check() override;
+  void report(const Expr *expr, int level) override;
 
 private:
+  SourceManager *sm;
   void getEntryFunc();
   ASTFunction *entryFunc;
 };

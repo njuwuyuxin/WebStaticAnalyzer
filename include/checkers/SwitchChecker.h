@@ -35,7 +35,7 @@ class SwitchChecker: public BasicChecker{
 public:
   SwitchChecker(ASTResource *resource, ASTManager *manager, CallGraph *call_graph, Config *configure)
     : BasicChecker(resource, manager, call_graph, configure){};
-  vector<Defect> check();
+  void check() override;
 private:
   static vector<string> Signed;
   static vector<string> Unsigned;

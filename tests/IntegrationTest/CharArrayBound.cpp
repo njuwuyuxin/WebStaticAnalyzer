@@ -4,12 +4,10 @@
 int foo() {
   char str[10] = "example";
   int a = 3;
-  int b = 0;
-  b = a + 5;
+  int b = 4;
 
+  (a + b)[str] = str[0];
   str[b * 2] = '\0';
-  7[str] = '\0';
-  (a + b)[str] = '\0';
 
   return b;
 }

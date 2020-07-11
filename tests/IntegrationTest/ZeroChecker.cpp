@@ -42,5 +42,6 @@ int testZero3(){
 			e=3;
 		}break;
 	}
+	a=b/e;
 	return 0;
 }

@@ -9,6 +9,7 @@ CMakeFiles/
 *.cmake
 *.o
 *.a
+*.swp
 run.sh
 time.txt
 config.txt

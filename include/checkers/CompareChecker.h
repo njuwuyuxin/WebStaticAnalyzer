@@ -37,10 +37,9 @@ public:
   CompareChecker(ASTResource *resource, ASTManager *manager,
                  CallGraph *call_graph, Config *configure)
       : BasicChecker(resource, manager, call_graph, configure){};
-  vector<Defect> check();
+  void check() override;
 
 private:
-  vector<Defect> defects;
   void push_defect(Stmt* s, const ASTContext& context);
   //static vector<string> Signed;
   //static vector<string> Unsigned;

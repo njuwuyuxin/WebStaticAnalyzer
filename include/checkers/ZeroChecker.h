@@ -30,7 +30,7 @@ using namespace llvm;
 using namespace clang::driver;
 using namespace clang::tooling;
 using namespace std;
-
+/*
 enum VarType{
   V_INT, V_UNSIGNED_INT, V_FLOAT, V_UNSIGNED_FLOAT, UNKNOWN
 };
@@ -46,26 +46,25 @@ struct VarValue{
     isDefined = false;
   }
 };
-
+*/
 
 class ZeroChecker : public BasicChecker {
 public:
   ZeroChecker(ASTResource *resource, ASTManager *manager,
                 CallGraph *call_graph, Config *configure)
       : BasicChecker(resource, manager, call_graph, configure){};
-  vector<Defect> check();
-  void report(Expr *expr, int level);
+  void check() override;
+  void report(const Expr *expr, int level) override;
 
 private:
-  vector<Defect> defects;
   const FunctionDecl *funDecl;
   ASTFunction *entryFunc;
-  vector<VarValue> ValueList;
+  // vector<VarValue> ValueList;
 
   void getFunDecl(const FunctionDecl *funDecl){
     this->funDecl = funDecl;
   }
-
+/*
   void defectsClearSamePlace(){
     vector<Defect> tmp;
     for(int i=0;i<defects.size();i++){
@@ -329,6 +328,6 @@ private:
       PosResult.PosValue.insert(-i);
     }
     return PosResult;
-  }
+  }*/
 };
 

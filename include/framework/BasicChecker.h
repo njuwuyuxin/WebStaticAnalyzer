@@ -1,16 +1,14 @@
 #ifndef BASIC_CHECKER_H
 #define BASIC_CHECKER_H
 
-#include <string>
-#include <vector>
 #include "ASTManager.h"
 #include "CallGraph.h"
 #include "Config.h"
+#include <string>
+#include <vector>
 
-struct Defect {
-  std::string location;
-  std::string info;
-};
+using Defect = std::tuple<std::string, std::string>;
+using DefectSet = std::set<Defect>;
 
 class BasicChecker {
 public:
@@ -22,8 +20,13 @@ public:
   BasicChecker(ASTResource *resource, ASTManager *manager,
                CallGraph *call_graph, Config *configure);
 
-  virtual std::vector<Defect> check() = 0;
-  virtual void report(Expr *expr, int level) {}
+  virtual void check() = 0;
+  virtual void report(const Expr *expr, int level) {}
+  void addDefect(const Defect &d) { defects.insert(d); }
+  const DefectSet &getDefects() const { return defects; }
+
+private:
+  DefectSet defects;
 };
 
 #endif

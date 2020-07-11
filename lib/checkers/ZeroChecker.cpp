@@ -14,12 +14,12 @@ static inline void printStmt(const Stmt* stmt, const SourceManager &sm){
 
 const string DefectInfo[2][2] = {
   {
-    "error:操作符'/'的右操作数是结果为0的常数表达式",
-    "error:操作符'%'的右操作数是结果为0的常数表达式"
+    "error:操作符'/'的右操作数为0",
+    "error:操作符'%'的右操作数为0"
   },
   {
-    "warning:操作符'/'的右操作数可能是结果为0的变量表达式",
-    "warning:操作符'%'的右操作数可能是结果为0的变量表达式"
+    "warning:操作符'/'的右操作数可能为0",
+    "warning:操作符'%'的右操作数可能为0"
   }
 };
 
@@ -38,6 +38,7 @@ public:
           //string begin = ro->getBeginLoc().printToString(funDecl->getASTContext().getSourceManager());
           //cout << begin << endl;
           Defect d;
+          auto &[location, info] = d;
           auto &sm = funDecl->getASTContext().getSourceManager();
           APValue::ValueKind vtp = rst.Val.getKind();
           switch(vtp){
@@ -45,8 +46,8 @@ public:
               int64_t val = rst.Val.getInt().getExtValue();
               //cout <<val<<endl;
               if(val == 0){
-                d.location = ro->getBeginLoc().printToString(sm);
-                d.info = "error:操作符"+opt+"的右操作数是结果为0的常数表达式";
+                location = ro->getBeginLoc().printToString(sm);
+                info = "error:操作符"+opt+"的右操作数是结果为0的常数表达式";
                 defects.push_back(d);
               }
             }break;
@@ -54,8 +55,8 @@ public:
               float val = rst.Val.getFloat().convertToFloat();
               //cout <<val<<endl;
               if(val == 0){
-                d.location = ro->getBeginLoc().printToString(sm);
-                d.info = "error:操作符"+opt+"的右操作数是结果为0的常数表达式";
+                location = ro->getBeginLoc().printToString(sm);
+                info = "error:操作符"+opt+"的右操作数是结果为0的常数表达式";
                 defects.push_back(d);
               }
             }break;
@@ -63,8 +64,8 @@ public:
               int64_t val = rst.Val.getFixedPoint().getValue().getExtValue();
               //cout <<val<<endl;
               if(val == 0){
-                d.location = ro->getBeginLoc().printToString(sm);
-                d.info = "error:操作符"+opt+"的右操作数是结果为0的常数表达式";
+                location = ro->getBeginLoc().printToString(sm);
+                info = "error:操作符"+opt+"的右操作数是结果为0的常数表达式";
                 defects.push_back(d);
               }
             }break;
@@ -85,39 +86,37 @@ public:
 };
 }
 
-vector<Defect> ZeroChecker::check() {
+void ZeroChecker::check() {
     std::vector<ASTFunction *> Funcs = resource->getFunctions();
-    defects.clear();
     for (auto fun : Funcs) {
-        ValueList.clear();
+        // ValueList.clear();
         const FunctionDecl *funDecl = manager->getFunctionDecl(fun);
         getFunDecl(funDecl);
         auto stmt = funDecl->getBody();
         ZeroVisitor visitor;
         visitor.getFun(funDecl);
         visitor.TraverseStmt(stmt);
-        auto dfts = visitor.getDefects();
-        defects.insert(defects.end(),dfts.begin(),dfts.end());
+        //auto dfts = visitor.getDefects();
         //visitFunctionStmts(funDecl->getBody());
         Analyzer analyzer;
         analyzer.bindZeroChecker(this);
         analyzer.DealStmt(funDecl->getBody());
     }
-    defectsClearSamePlace();
-    return defects;
+    // defectsClearSamePlace();
 }
 
-void ZeroChecker::report(Expr *expr, int level) {
+void ZeroChecker::report(const Expr *expr, int level) {
   Defect d;
+  auto &[location, info] = d;
   BinaryOperator *E = (BinaryOperator *)expr;
   Expr* ro = E->getRHS()->IgnoreParenCasts()->IgnoreImpCasts();
   int opt = E->getOpcodeStr() == "/" ? 0 : 1;
   auto &sm = funDecl->getASTContext().getSourceManager();
-  d.location = ro->getBeginLoc().printToString(sm);
-  d.info = DefectInfo[level][opt];
-  defects.push_back(d);
+  location = ro->getBeginLoc().printToString(sm);
+  info = DefectInfo[level][opt];
+  addDefect(move(d));
 }
-
+/*
 void ZeroChecker::visitFunctionStmts(Stmt *stmt){
   string cname(stmt->getStmtClassName());
   if(cname == "CompoundStmt"){
@@ -128,7 +127,7 @@ void ZeroChecker::visitFunctionStmts(Stmt *stmt){
   }
   //printValueList();
 }
-
+*/
 /*
 void ZeroChecker::DataFlowAnalysis(CFG* cfg){
   for(auto block=cfg->rbegin();block!=cfg->rend();block++){
@@ -142,7 +141,7 @@ void ZeroChecker::DataFlowAnalysis(CFG* cfg){
   printValueList();
 }
 */
-
+/*
 void ZeroChecker::DealStmt(Stmt* stmt){
   if(stmt == nullptr)return;
   string cname(stmt->getStmtClassName());
@@ -591,7 +590,7 @@ VarValue ZeroChecker::DealConditionalOperator(ConditionalOperator* E){
   else{
     return DealRValExpr(E->getTrueExpr());
   }
-}
+}*/
 //visit some specific children class by Stmt*
 /*
   Stmt *st = block->getTerminatorStmt();

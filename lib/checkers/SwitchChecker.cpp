@@ -74,11 +74,12 @@ public:
           //若enumElements非空，则说明有枚举情况尚未覆盖
           if(enumElements.size()!=0){
             Defect df;
-            df.location = E->getBeginLoc().printToString(ctx.getSourceManager());
-            df.info = "存在尚未覆盖的枚举类型\n";
+            auto &[location, info] = df;
+            location = E->getBeginLoc().printToString(ctx.getSourceManager());
+            info = "存在尚未覆盖的枚举类型\n";
             for(auto i:enumElements){
-              df.info += i;
-              df.info += " ";
+              info += i;
+              info += " ";
             }
             defects.push_back(df);
           }
@@ -103,10 +104,9 @@ private:
   std::vector<Defect> defects;
 };
 
-vector<Defect> SwitchChecker::check(){
+void SwitchChecker::check(){
   std::vector<ASTFunction *> topLevelFuncs = call_graph->getTopLevelFunctions();
   std::vector<EnumDecl*> topLevelEnums = resource->getEnums();
-  std::vector<Defect> defects;
   for (auto fun : topLevelFuncs) {
     const FunctionDecl *funDecl = manager->getFunctionDecl(fun);
     auto stmt = funDecl->getBody();
@@ -116,9 +116,10 @@ vector<Defect> SwitchChecker::check(){
     SwitchVisitor visitor(ctx,topLevelEnums);
     visitor.TraverseStmt(stmt);
     std::vector<Defect> dfs = visitor.getDefects();
-    defects.insert(defects.end(),dfs.begin(),dfs.end());
+    for (auto &&d : dfs) {
+      addDefect(move(d));
+    }
   }
-  return defects;
 }
 
 void SwitchChecker::getEntryFunc() {

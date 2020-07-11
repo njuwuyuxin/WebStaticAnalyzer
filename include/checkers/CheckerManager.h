@@ -4,21 +4,19 @@
 #include <string>
 #include <utility>
 #include <vector>
-using namespace std;
-using std::vector;
 
 struct Result {
-  string checkerName;
-  vector<Defect> defects;
+  std::string checkerName;
+  DefectSet defects;
 };
 
 class CheckerManager {
 public:
   CheckerManager(Config *conf);
-  void add_checker(BasicChecker *checker, string name);
+  void add_checker(BasicChecker *checker, std::string name);
   void check_all();
 
 private:
   Config *configure;
-  vector<pair<BasicChecker *, string>> checkers;
+  std::vector<std::pair<BasicChecker *, std::string>> checkers;
 };

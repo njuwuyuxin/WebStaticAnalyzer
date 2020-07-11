@@ -255,10 +255,9 @@ void LoopChecker::getEntryFunc()
     return;
 }
 
-std::vector<Defect> LoopChecker::check()
+void LoopChecker::check()
 {
     std::vector<ASTFunction *> functions = resource->getFunctions();
-    std::vector<Defect> defects;
 
     for (auto func : functions)
     {
@@ -288,11 +287,11 @@ std::vector<Defect> LoopChecker::check()
         for (auto &&DefectStmt : DefectList)
         {
             Defect d;
-            d.location = DefectStmt.Statement->getBeginLoc().printToString(sm);
-            d.info = "存在可能的死循環 (" + DefectStmt.info + ")";
-            defects.push_back(d);
+            auto &[location, info] = d;
+            location = DefectStmt.Statement->getBeginLoc().printToString(sm);
+            info = "存在可能的死循環 (" + DefectStmt.info + ")";
+            addDefect(move(d));
         }
     }
 
-    return defects;
 }
