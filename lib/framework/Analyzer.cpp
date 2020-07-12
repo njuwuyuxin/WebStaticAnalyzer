@@ -66,7 +66,7 @@ void Analyzer::DealVarDecl(VarDecl *var) {
           for (unsigned int i = 0; i < value->getArrayInitializedElts(); ++i) {
             str[i] = value->getArrayInitializedElt(i).getInt().getExtValue();
           }
-          new_var.values = make_shared<strSet>(initializer_list<string>{str});
+          new_var.values = make_shared<StrSet>(initializer_list<string>{str});
         }
         break;
       default: {
@@ -290,7 +290,7 @@ auto Analyzer::DealRValExpr(Expr *expr) -> VarValue {
         ((FloatingLiteral *)expr)->getValue().convertToFloat());
   } else if (stmt_class == "CharacterLiteral") {
     PosResult.var_type = V_CHAR;
-    PosResult.values = make_shared<uintSet>(
+    PosResult.values = make_shared<UIntSet>(
         initializer_list<uint64_t>{((CharacterLiteral *)expr)->getValue()});
   } else if (stmt_class == "ImplicitCastExpr") {
     string sub_class =
@@ -355,9 +355,9 @@ auto Analyzer::DealBinaryOperator(BinaryOperator *E) -> VarValue {
           report(arrayExpr, var);
           return PosResult;
         }
-        auto rhsvalues = static_pointer_cast<uintSet>(rhs.values);
+        auto rhsvalues = static_pointer_cast<UIntSet>(rhs.values);
         if (var.var_type == V_CHAR_ARRAY) {
-          auto values = static_pointer_cast<strSet>(ValueList[pos].values);
+          auto values = static_pointer_cast<StrSet>(ValueList[pos].values);
           int len = values->cbegin()->length();
           for (auto &&i : idx.PosValue) {
             if (i >= len) {
@@ -516,14 +516,14 @@ auto Analyzer::DealArraySubscriptExpr(ArraySubscriptExpr *E) -> VarValue {
   auto var = DealRValExpr(E->getBase());
   auto idx = DealRValExpr(E->getIdx());
   if (var.var_type == V_CHAR_ARRAY) {
-    auto values = static_pointer_cast<strSet>(var.values);
+    auto values = static_pointer_cast<StrSet>(var.values);
     auto len = values->cbegin()->length();
     for (auto &&i : idx.PosValue) {
       if (i >= len) {
         report(E, var);
         return PosResult;
       }
-      auto p = make_shared<uintSet>();
+      auto p = make_shared<UIntSet>();
       for (auto &&s : *values) {
         if (auto end = s.find('\0'); end != string::npos && i > end) {
           report(E, var);

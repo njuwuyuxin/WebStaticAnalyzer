@@ -20,7 +20,7 @@ public:
         std::cout << j << " ";
       }
       if (i.var_type == V_CHAR_ARRAY) {
-        auto values = std::static_pointer_cast<strSet>(i.values);
+        auto values = std::static_pointer_cast<StrSet>(i.values);
         for (auto &&s : *values) {
           std::cout << s << " ";
         }
@@ -39,8 +39,8 @@ public:
   void DealDoStmt(DoStmt *dst);
 
 private:
-  using uintSet = std::set<uint64_t>;
-  using strSet = std::set<std::string>;
+  using UIntSet = std::set<uint64_t>;
+  using StrSet = std::set<std::string>;
 
   enum { ERROR, WARNING };
   enum VarType {
@@ -74,7 +74,7 @@ private:
   void report(ArraySubscriptExpr *E, const VarValue &var) {
     if (charArrayChecker != nullptr) {
       charArrayChecker->report(
-          E, std::static_pointer_cast<strSet>(var.values)->size() > 1 ? WARNING
+          E, std::static_pointer_cast<StrSet>(var.values)->size() > 1 ? WARNING
                                                                       : ERROR);
     }
   }
