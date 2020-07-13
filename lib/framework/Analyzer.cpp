@@ -14,7 +14,7 @@ void Analyzer::DealStmt(Stmt *stmt) {
     if (decltmp->isSingleDecl()) {
       DealVarDecl((VarDecl *)(decltmp->getSingleDecl()));
     }
-  } else if (cname == "BinaryOperator") {
+  } else if (cname == "BinaryOperator" || cname == "CompoundAssignOperator") {
     BinaryOperator *bopt = (BinaryOperator *)stmt;
     DealBinaryOperator(bopt);
   } else if (cname == "UnaryOperator") {
@@ -398,12 +398,27 @@ auto Analyzer::DealBinaryOperator(BinaryOperator *E) -> VarValue {
   case BO_Rem: {
     return DealModOp(DealRValExpr(E->getLHS()), DealRValExpr(E->getRHS()), E);
   } break;
+  case BO_And:{
+    return DealAndOp(DealRValExpr(E->getLHS()), DealRValExpr(E->getRHS()));
+  }break;
+  case BO_Or:{
+    return DealOrOp(DealRValExpr(E->getLHS()), DealRValExpr(E->getRHS()));
+  }break;
+  case BO_Xor:{
+    return DealXorOp(DealRValExpr(E->getLHS()), DealRValExpr(E->getRHS()));
+  }break;
   case BO_LAnd: {
     return DealLogAndOp(DealRValExpr(E->getLHS()), DealRValExpr(E->getRHS()));
   } break;
   case BO_LOr: {
     return DealLogOrOp(DealRValExpr(E->getLHS()), DealRValExpr(E->getRHS()));
   }
+  case BO_Shl:{
+    return DealShlOp(DealRValExpr(E->getLHS()), DealRValExpr(E->getRHS()));
+  }break;
+  case BO_Shr:{
+    return DealShrOp(DealRValExpr(E->getLHS()), DealRValExpr(E->getRHS()));
+  }break;
   case BO_LT: {
     return DealLTOp(DealRValExpr(E->getLHS()), DealRValExpr(E->getRHS()));
   } break;
@@ -422,6 +437,186 @@ auto Analyzer::DealBinaryOperator(BinaryOperator *E) -> VarValue {
   case BO_NE: {
     return DealNEOp(DealRValExpr(E->getLHS()), DealRValExpr(E->getRHS()));
   } break;
+  case BO_AddAssign:{
+    string LClass(E->getLHS()->getStmtClassName());
+    if (LClass == "DeclRefExpr") {
+      int pos =
+          FindVarInList((VarDecl *)(((DeclRefExpr *)(E->getLHS()))->getDecl()));
+      if (pos != -1) {
+        auto lv = ValueList[pos].PosValue;
+        VarValue ltmp;
+        ltmp.PosValue = lv;
+        ltmp = DealAddOp(ltmp, DealRValExpr(E->getRHS()));
+        ValueList[pos].PosValue = ltmp.PosValue;
+        ValueList[pos].isDefined = true;
+        PosResult.PosValue.insert(1);
+      } else {
+        PosResult.PosValue.insert(0);
+      }
+    }
+  }break;
+  case BO_SubAssign:{
+    string LClass(E->getLHS()->getStmtClassName());
+    if (LClass == "DeclRefExpr") {
+      int pos =
+          FindVarInList((VarDecl *)(((DeclRefExpr *)(E->getLHS()))->getDecl()));
+      if (pos != -1) {
+        auto lv = ValueList[pos].PosValue;
+        VarValue ltmp;
+        ltmp.PosValue = lv;
+        ltmp = DealSubOp(ltmp, DealRValExpr(E->getRHS()));
+        ValueList[pos].PosValue = ltmp.PosValue;
+        ValueList[pos].isDefined = true;
+        PosResult.PosValue.insert(1);
+      } else {
+        PosResult.PosValue.insert(0);
+      }
+    }
+  }break;
+  case BO_MulAssign:{
+    string LClass(E->getLHS()->getStmtClassName());
+    if (LClass == "DeclRefExpr") {
+      int pos =
+          FindVarInList((VarDecl *)(((DeclRefExpr *)(E->getLHS()))->getDecl()));
+      if (pos != -1) {
+        auto lv = ValueList[pos].PosValue;
+        VarValue ltmp;
+        ltmp.PosValue = lv;
+        ltmp = DealMulOp(ltmp, DealRValExpr(E->getRHS()));
+        ValueList[pos].PosValue = ltmp.PosValue;
+        ValueList[pos].isDefined = true;
+        PosResult.PosValue.insert(1);
+      } else {
+        PosResult.PosValue.insert(0);
+      }
+    }
+  }break;
+  case BO_DivAssign:{
+    string LClass(E->getLHS()->getStmtClassName());
+    if (LClass == "DeclRefExpr") {
+      int pos =
+          FindVarInList((VarDecl *)(((DeclRefExpr *)(E->getLHS()))->getDecl()));
+      if (pos != -1) {
+        auto lv = ValueList[pos].PosValue;
+        VarValue ltmp;
+        ltmp.PosValue = lv;
+        ltmp = DealDivOp(ltmp, DealRValExpr(E->getRHS()), E);
+        ValueList[pos].PosValue = ltmp.PosValue;
+        ValueList[pos].isDefined = true;
+        PosResult.PosValue.insert(1);
+      } else {
+        PosResult.PosValue.insert(0);
+      }
+    }
+  }break;
+  case BO_RemAssign:{
+    string LClass(E->getLHS()->getStmtClassName());
+    if (LClass == "DeclRefExpr") {
+      int pos =
+          FindVarInList((VarDecl *)(((DeclRefExpr *)(E->getLHS()))->getDecl()));
+      if (pos != -1) {
+        auto lv = ValueList[pos].PosValue;
+        VarValue ltmp;
+        ltmp.PosValue = lv;
+        ltmp = DealModOp(ltmp, DealRValExpr(E->getRHS()), E);
+        ValueList[pos].PosValue = ltmp.PosValue;
+        ValueList[pos].isDefined = true;
+        PosResult.PosValue.insert(1);
+      } else {
+        PosResult.PosValue.insert(0);
+      }
+    }
+  }break;
+  case BO_AndAssign:{
+    string LClass(E->getLHS()->getStmtClassName());
+    if (LClass == "DeclRefExpr") {
+      int pos =
+          FindVarInList((VarDecl *)(((DeclRefExpr *)(E->getLHS()))->getDecl()));
+      if (pos != -1) {
+        auto lv = ValueList[pos].PosValue;
+        VarValue ltmp;
+        ltmp.PosValue = lv;
+        ltmp = DealAndOp(ltmp, DealRValExpr(E->getRHS()));
+        ValueList[pos].PosValue = ltmp.PosValue;
+        ValueList[pos].isDefined = true;
+        PosResult.PosValue.insert(1);
+      } else {
+        PosResult.PosValue.insert(0);
+      }
+    }
+  }break;
+  case BO_OrAssign:{
+    string LClass(E->getLHS()->getStmtClassName());
+    if (LClass == "DeclRefExpr") {
+      int pos =
+          FindVarInList((VarDecl *)(((DeclRefExpr *)(E->getLHS()))->getDecl()));
+      if (pos != -1) {
+        auto lv = ValueList[pos].PosValue;
+        VarValue ltmp;
+        ltmp.PosValue = lv;
+        ltmp = DealOrOp(ltmp, DealRValExpr(E->getRHS()));
+        ValueList[pos].PosValue = ltmp.PosValue;
+        ValueList[pos].isDefined = true;
+        PosResult.PosValue.insert(1);
+      } else {
+        PosResult.PosValue.insert(0);
+      }
+    }
+  }break;
+  case BO_XorAssign:{
+    string LClass(E->getLHS()->getStmtClassName());
+    if (LClass == "DeclRefExpr") {
+      int pos =
+          FindVarInList((VarDecl *)(((DeclRefExpr *)(E->getLHS()))->getDecl()));
+      if (pos != -1) {
+        auto lv = ValueList[pos].PosValue;
+        VarValue ltmp;
+        ltmp.PosValue = lv;
+        ltmp = DealXorOp(ltmp, DealRValExpr(E->getRHS()));
+        ValueList[pos].PosValue = ltmp.PosValue;
+        ValueList[pos].isDefined = true;
+        PosResult.PosValue.insert(1);
+      } else {
+        PosResult.PosValue.insert(0);
+      }
+    }
+  }break;
+  case BO_ShlAssign:{
+    string LClass(E->getLHS()->getStmtClassName());
+    if (LClass == "DeclRefExpr") {
+      int pos =
+          FindVarInList((VarDecl *)(((DeclRefExpr *)(E->getLHS()))->getDecl()));
+      if (pos != -1) {
+        auto lv = ValueList[pos].PosValue;
+        VarValue ltmp;
+        ltmp.PosValue = lv;
+        ltmp = DealShlOp(ltmp, DealRValExpr(E->getRHS()));
+        ValueList[pos].PosValue = ltmp.PosValue;
+        ValueList[pos].isDefined = true;
+        PosResult.PosValue.insert(1);
+      } else {
+        PosResult.PosValue.insert(0);
+      }
+    }
+  }break;
+  case BO_ShrAssign:{
+    string LClass(E->getLHS()->getStmtClassName());
+    if (LClass == "DeclRefExpr") {
+      int pos =
+          FindVarInList((VarDecl *)(((DeclRefExpr *)(E->getLHS()))->getDecl()));
+      if (pos != -1) {
+        auto lv = ValueList[pos].PosValue;
+        VarValue ltmp;
+        ltmp.PosValue = lv;
+        ltmp = DealShrOp(ltmp, DealRValExpr(E->getRHS()));
+        ValueList[pos].PosValue = ltmp.PosValue;
+        ValueList[pos].isDefined = true;
+        PosResult.PosValue.insert(1);
+      } else {
+        PosResult.PosValue.insert(0);
+      }
+    }
+  }break;
   default:
     break;
   }
@@ -450,10 +645,10 @@ auto Analyzer::DealUnaryOperator(UnaryOperator *E) -> VarValue {
     PosResult = DealMinus(PosResult);
   } break;
   case UO_Not: {
-
+    PosResult = DealNot(PosResult);
   } break;
   case UO_LNot: {
-
+    PosResult = DealLogNot(PosResult);
   } break;
   default:
     break;

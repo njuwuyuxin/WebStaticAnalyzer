@@ -139,6 +139,53 @@ private:
     return v3;
   }
 
+  VarValue DealAndOp(VarValue v1, VarValue v2){
+    VarValue v3;
+    for (auto i : v1.PosValue) {
+      for (auto j : v2.PosValue) {
+        v3.PosValue.insert(((int32_t)i) & ((int32_t)j));
+      }
+    }
+    return v3;
+  }
+  VarValue DealOrOp(VarValue v1, VarValue v2){
+    VarValue v3;
+    for (auto i : v1.PosValue) {
+      for (auto j : v2.PosValue) {
+        v3.PosValue.insert(((int32_t)i) | ((int32_t)j));
+      }
+    }
+    return v3;
+  }
+  VarValue DealXorOp(VarValue v1, VarValue v2){
+    VarValue v3;
+    for (auto i : v1.PosValue) {
+      for (auto j : v2.PosValue) {
+        v3.PosValue.insert(((int32_t)i) ^ ((int32_t)j));
+      }
+    }
+    return v3;
+  }
+
+  VarValue DealShlOp(VarValue v1, VarValue v2){
+    VarValue v3;
+    for (auto i : v1.PosValue) {
+      for (auto j : v2.PosValue) {
+        v3.PosValue.insert(((int32_t)i) << ((int32_t)j));
+      }
+    }
+    return v3;
+  }
+  VarValue DealShrOp(VarValue v1, VarValue v2){
+    VarValue v3;
+    for (auto i : v1.PosValue) {
+      for (auto j : v2.PosValue) {
+        v3.PosValue.insert(((uint32_t)i) >> ((uint32_t)j));
+      }
+    }
+    return v3;
+  }
+
   VarValue DealLogAndOp(VarValue v1, VarValue v2) {
     VarValue v3;
     for (auto i : v1.PosValue) {
@@ -266,6 +313,20 @@ private:
     VarValue PosResult;
     for (auto i : v.PosValue) {
       PosResult.PosValue.insert(-i);
+    }
+    return PosResult;
+  }
+  VarValue DealNot(VarValue v){
+    VarValue PosResult;
+    for (auto i : v.PosValue) {
+      PosResult.PosValue.insert(~((int32_t)i));
+    }
+    return PosResult;
+  }
+  VarValue DealLogNot(VarValue v){
+    VarValue PosResult;
+    for (auto i : v.PosValue) {
+      PosResult.PosValue.insert(!i);
     }
     return PosResult;
   }
