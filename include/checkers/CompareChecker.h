@@ -41,6 +41,7 @@ public:
 
 private:
   void push_defect(Stmt* s, const ASTContext& context);
+  void push_warning(Stmt* s, const ASTContext& context);
   //static vector<string> Signed;
   //static vector<string> Unsigned;
 
