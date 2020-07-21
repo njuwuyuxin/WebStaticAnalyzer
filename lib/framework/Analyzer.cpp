@@ -5,6 +5,35 @@
 
 using namespace std;
 
+void Analyzer::IncLayer(){
+  layer++;
+}
+
+void Analyzer::DecLayer(){
+  std::vector<VarValue>::iterator iter;
+  for( iter = ValueList.begin(); iter != ValueList.end(); ){
+    if(iter->layer == layer){
+      iter = ValueList.erase(iter);
+    }else{
+      ++iter;
+    }
+  }
+  layer--;
+}
+
+ VarValue Analyzer::DealFunctionDecl(const FunctionDecl *fde){
+  VarValue Posval;
+  layer = 0;
+  try_layer = INT32_MAX;
+  if_layer.clear();
+  DealStmt(fde->getBody());
+  layer = 0;
+  try_layer = INT32_MAX;
+  if_layer.clear();
+  return Posval;
+  //ValueList.clear();
+}
+
 void Analyzer::DealStmt(Stmt *stmt) {
   if (stmt == nullptr)
     return;
@@ -38,12 +67,16 @@ void Analyzer::DealStmt(Stmt *stmt) {
   } else if (cname == "DoStmt") {
     DoStmt *dst = (DoStmt *)stmt;
     DealDoStmt(dst);
+  } else if (cname == "CXXTryStmt") {
+    CXXTryStmt *tyst = (CXXTryStmt *)stmt;
+    DealCXXTryStmt(tyst);
   }
 }
 
 void Analyzer::DealVarDecl(VarDecl *var) {
   VarValue new_var;
   new_var.var = var;
+  new_var.layer = layer;
   if (var->hasInit()) {
     new_var.isDefined = true;
     var->evaluateValue();
@@ -55,7 +88,7 @@ void Analyzer::DealVarDecl(VarDecl *var) {
         new_var.PosValue.insert(val);
       } break;
       case APValue::Float: {
-        float val = value->getFloat().convertToFloat();
+        float val = value->getFloat().convertToDouble();
         new_var.var_type = V_FLOAT;
         new_var.PosValue.insert(val);
       } break;
@@ -84,11 +117,13 @@ void Analyzer::DealVarDecl(VarDecl *var) {
 }
 
 void Analyzer::DealIfStmt(IfStmt *ist) {
+  IncLayer();
   VarDecl *new_var = ist->getConditionVariable();
   if (new_var != nullptr) {
     DealVarDecl(new_var);
     return;
   }
+  add_if_layer(ist->getCond());
   VarValue condres = DealRValExpr(ist->getCond());
   for (auto i : condres.PosValue) {
   }
@@ -136,9 +171,12 @@ void Analyzer::DealIfStmt(IfStmt *ist) {
       DealCompoundStmt(thst);
     }
   }
+  del_if_layer();
+  DecLayer();
 }
 
 void Analyzer::DealCompoundStmt(Stmt *stmt) {
+  IncLayer();
   string cname(stmt->getStmtClassName());
   if (cname == "CompoundStmt") {
     CompoundStmt *cst = (CompoundStmt *)stmt;
@@ -148,9 +186,11 @@ void Analyzer::DealCompoundStmt(Stmt *stmt) {
   } else {
     DealStmt(stmt);
   }
+  DecLayer();
 }
 
 void Analyzer::DealSwitchStmt(SwitchStmt *sst) {
+  IncLayer();
   VarValue condvar = DealRValExpr(sst->getCond());
   SwitchCase *case_begin = sst->getSwitchCaseList();
   vector<VarValue> stored;
@@ -221,9 +261,11 @@ void Analyzer::DealSwitchStmt(SwitchStmt *sst) {
       }
     }
   }
+  DecLayer();
 }
 
 void Analyzer::DealForStmt(ForStmt *fst) {
+  IncLayer();
   DealStmt(fst->getInit());
   VarValue res;
   if (fst->getCond() != nullptr) {
@@ -242,9 +284,11 @@ void Analyzer::DealForStmt(ForStmt *fst) {
     DealCompoundStmt(fst->getBody());
     DealStmt(fst->getInc());
   }
+  DecLayer();
 }
 
 void Analyzer::DealWhileStmt(WhileStmt *wst) {
+  IncLayer();
   VarValue res = DealRValExpr(wst->getCond());
   if (res.PosValue.find(0) != res.PosValue.end()) {
     if (res.PosValue.size() == 1) {
@@ -255,9 +299,34 @@ void Analyzer::DealWhileStmt(WhileStmt *wst) {
   } else {
     DealCompoundStmt(wst->getBody());
   }
+  DecLayer();
 }
 
-void Analyzer::DealDoStmt(DoStmt *dst) { DealCompoundStmt(dst->getBody()); }
+void Analyzer::DealDoStmt(DoStmt *dst) { 
+  DealCompoundStmt(dst->getBody()); 
+}
+
+void Analyzer::DealCXXTryStmt(CXXTryStmt *tyst){
+  IncLayer();
+  add_try_layer();
+  CompoundStmt *cst = tyst->getTryBlock();
+  CXXThrowExpr *trst = nullptr;
+  for (auto it = cst->body_begin(); it != cst->body_end(); it++) {
+    string cname((*it)->getStmtClassName());
+    if(cname == "CXXThrowExpr"){
+      trst = (CXXThrowExpr*)(*it);
+      break;
+    }
+    else{
+      DealStmt(*it);
+    }
+  }
+  if(trst != nullptr){
+    VarValue trv = DealRValExpr(trst->getSubExpr());
+  }
+  del_try_layer();
+  DecLayer();
+}
 
 auto Analyzer::DealRValExpr(Expr *expr) -> VarValue {
   string stmt_class = expr->getStmtClassName();
@@ -273,7 +342,7 @@ auto Analyzer::DealRValExpr(Expr *expr) -> VarValue {
       PosResult.PosValue.insert(val);
     } break;
     case APValue::Float: {
-      float val = cex->getAPValueResult().getFloat().convertToFloat();
+      float val = cex->getAPValueResult().getFloat().convertToDouble();
       PosResult.var_type = V_FLOAT;
       PosResult.PosValue.insert(val);
     } break;
@@ -287,7 +356,7 @@ auto Analyzer::DealRValExpr(Expr *expr) -> VarValue {
   } else if (stmt_class == "FloatingLiteral") {
     PosResult.var_type = V_FLOAT;
     PosResult.PosValue.insert(
-        ((FloatingLiteral *)expr)->getValue().convertToFloat());
+        ((FloatingLiteral *)expr)->getValue().convertToDouble());
   } else if (stmt_class == "CharacterLiteral") {
     PosResult.var_type = V_CHAR;
     PosResult.values = make_shared<UIntSet>(
@@ -680,7 +749,9 @@ auto Analyzer::DealDivOp(VarValue v1, VarValue v2, BinaryOperator *E)
   for (auto i : v1.PosValue) {
     for (auto j : v2.PosValue) {
       if (j == 0) {
-        report(E, v2);
+        if(!check_white_list(E->getRHS())){
+          report(E, v2);
+        }
         v3.PosValue.insert(0);
       } else {
         v3.PosValue.insert(i / j);
@@ -696,7 +767,9 @@ auto Analyzer::DealModOp(VarValue v1, VarValue v2, BinaryOperator *E)
   for (auto i : v1.PosValue) {
     for (auto j : v2.PosValue) {
       if (j == 0) {
-        report(E, v2);
+        if(!check_white_list(E->getRHS())){
+          report(E, v2);
+        }
         v3.PosValue.insert(0);
       } else {
         v3.PosValue.insert(((int)i) % ((int)j));

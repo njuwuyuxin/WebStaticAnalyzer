@@ -98,14 +98,15 @@ void ZeroChecker::check() {
         visitor.TraverseStmt(stmt);
         //auto dfts = visitor.getDefects();
         //visitFunctionStmts(funDecl->getBody());
-        //if(funDecl->getNameAsString() == "testZero1"){
-        //cout << "testZero1 start" << endl;
+        if(funDecl->getNameAsString() == "testZero1"){
+        cout << "testZero1 start" << endl;
         Analyzer analyzer;
+        analyzer.setFunName(funDecl->getNameAsString());
         analyzer.bindZeroChecker(this);
-        analyzer.DealStmt(funDecl->getBody());
-        //analyzer.printValueList();
-        //cout << "testZero1 end" << endl;
-        //}
+        analyzer.DealFunctionDecl(funDecl);
+        analyzer.printValueList();
+        cout << "testZero1 end" << endl;
+        }
     }
     // defectsClearSamePlace();
 }

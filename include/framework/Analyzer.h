@@ -1,12 +1,125 @@
 #include "framework/BasicChecker.h"
-#include "clang/AST/Expr.h"
+
+#include <clang/AST/AST.h>
+#include <clang/AST/ASTConsumer.h>
+#include <clang/AST/Attr.h>
+#include <clang/AST/Expr.h>
+#include <clang/AST/RecursiveASTVisitor.h>
+#include <clang/Analysis/CFG.h>
+#include <clang/Basic/SourceManager.h>
+#include <clang/Frontend/ASTConsumers.h>
+#include <clang/Frontend/ASTUnit.h>
+#include <clang/Frontend/CompilerInstance.h>
+#include <clang/Frontend/FrontendActions.h>
+#include <clang/Lex/Lexer.h>
+#include <clang/Rewrite/Core/Rewriter.h>
+#include <clang/Tooling/CommonOptionsParser.h>
+#include <clang/Tooling/Tooling.h>
+#include <llvm/Support/raw_ostream.h>
+
 #include <cstdint>
 #include <memory>
+#include <string>
 
 using namespace clang;
 
+  enum { ERROR, WARNING };
+  enum VarType {
+    V_INT,
+    V_UNSIGNED_INT,
+    V_FLOAT,
+    V_UNSIGNED_FLOAT,
+    V_CHAR,
+    V_CHAR_ARRAY,
+    UNKNOWN
+  };
+
+  struct VarValue {
+    VarDecl *var = nullptr;
+    VarType var_type = UNKNOWN;
+    bool isDefined = false;
+    int layer = 0;
+    std::set<float> PosValue;
+    std::shared_ptr<void> values;
+  };
+
 class Analyzer {
 public:
+
+  std::string funname;
+  void setFunName(std::string name){funname = name;}
+  bool istestZero(){ return funname == "testZero1"; }
+
+  int try_layer;
+  std::vector<std::pair<int, std::string>> if_layer;
+  void add_try_layer(){
+    try_layer = layer;
+  }
+  void del_try_layer(){
+    try_layer = INT32_MAX;
+  }
+  int add_if_layer(Expr* expr){
+    std::string cname(expr->getStmtClassName());
+    int index = -1;
+    if(cname == "BinaryOperator"){
+      BinaryOperator *E = (BinaryOperator*)expr;
+      if(E->getOpcode() == BO_GT || E->getOpcode() == BO_LT || E->getOpcode() == BO_NE){
+        VarValue vl = DealRValExpr(E->getLHS());
+        VarValue vr = DealRValExpr(E->getRHS());
+        if(vl.var != nullptr){
+          if(vr.PosValue.size() == 1 && vr.PosValue.find(0) != vr.PosValue.end()){
+            std::pair<int, std::string> tmp;
+            tmp.first = layer;
+            tmp.second = vl.var->getNameAsString();
+            index = if_layer.size();
+            if_layer.push_back(tmp);
+          }
+        }
+        else if(vr.var != nullptr){
+          if(vl.PosValue.size() == 1 && vl.PosValue.find(0) != vl.PosValue.end()){
+            std::pair<int, std::string> tmp;
+            tmp.first = layer;
+            tmp.second = vr.var->getNameAsString();
+            index = if_layer.size();
+            if_layer.push_back(tmp);
+          }
+        }
+      }
+    }
+    return index;
+  }
+  void del_if_layer(){
+    std::vector<std::pair<int, std::string>>::iterator iter;
+    for( iter = if_layer.begin(); iter != if_layer.end(); ){
+      if(iter->first >= layer){
+        iter = if_layer.erase(iter);
+      }else{
+        ++iter;
+      }
+    }
+  }
+  void print_white_list(){
+    std::cout << "try layer: " << try_layer << std::endl;
+    for(auto i:if_layer){
+      std::cout << "variable " << i.second << " in layer " << i.first << std::endl;
+    }
+  }
+  bool check_white_list(Expr* expr){
+    if(layer >= try_layer){
+      return true;
+    }
+    VarValue tmp = DealRValExpr(expr);
+    if(tmp.var == nullptr) return false;
+    std::string cname(tmp.var->getNameAsString());
+    for(auto i:if_layer){
+      if(cname == i.second && layer >= i.first){
+        return true;
+      }
+    }
+    return false;
+  }
+
+  int layer;//记录嵌套层数，用于除模0的安全检测与局部变量增删
   void bindZeroChecker(BasicChecker *checker) { zeroChecker = checker; }
   void bindCharArrayChecker(BasicChecker *checker) {
     charArrayChecker = checker;
@@ -29,6 +142,7 @@ public:
     }
   }
 
+  VarValue DealFunctionDecl(const FunctionDecl *fde);
   void DealStmt(Stmt *stmt);
   void DealVarDecl(VarDecl *var);
   void DealCompoundStmt(Stmt *stmt);
@@ -37,29 +151,15 @@ public:
   void DealForStmt(ForStmt *fst);
   void DealWhileStmt(WhileStmt *wst);
   void DealDoStmt(DoStmt *dst);
+  void DealCXXTryStmt(CXXTryStmt *tyst);
+  void DealCXXThrowExpr(CXXThrowExpr *trst);
+  void DealCXXCatchStmt(CXXTryStmt *cast);
+  void IncLayer();
+  void DecLayer();
 
 private:
   using UIntSet = std::set<uint64_t>;
   using StrSet = std::set<std::string>;
-
-  enum { ERROR, WARNING };
-  enum VarType {
-    V_INT,
-    V_UNSIGNED_INT,
-    V_FLOAT,
-    V_UNSIGNED_FLOAT,
-    V_CHAR,
-    V_CHAR_ARRAY,
-    UNKNOWN
-  };
-
-  struct VarValue {
-    VarDecl *var = nullptr;
-    VarType var_type = UNKNOWN;
-    bool isDefined = false;
-    std::set<float> PosValue;
-    std::shared_ptr<void> values;
-  };
 
   std::vector<VarValue> ValueList;
   BasicChecker *zeroChecker = nullptr;
