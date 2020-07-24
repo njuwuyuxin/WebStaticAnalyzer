@@ -6,6 +6,7 @@
 #include <stack>
 #include <string>
 #include <vector>
+#include <queue>
 
 #include <clang/AST/AST.h>
 #include <clang/AST/ASTConsumer.h>

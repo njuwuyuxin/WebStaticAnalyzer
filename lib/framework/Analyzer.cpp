@@ -21,17 +21,48 @@ void Analyzer::DecLayer(){
   layer--;
 }
 
- VarValue Analyzer::DealFunctionDecl(const FunctionDecl *fde){
+ void Analyzer::DealFunctionDecl(const FunctionDecl *fde){
+   ValueList.clear();
   VarValue Posval;
   layer = 0;
   try_layer = INT32_MAX;
   if_layer.clear();
+  unsigned parnum = fde->getNumParams();
+  for(unsigned i = 0; i < parnum; i++){
+    ParmVarDecl *pv = const_cast<ParmVarDecl*>(fde->getParamDecl(i));
+    VarValue new_pv;
+    new_pv.var = pv;
+    new_pv.layer = layer;
+    if(pv->hasDefaultArg()){
+      VarValue tmp = DealRValExpr(pv->getDefaultArg());
+      for(auto j:tmp.PosValue){
+        new_pv.PosValue.insert(j);
+        new_pv.isDefined = true;
+      }
+    }
+    else{
+      new_pv.PosValue.insert(0);
+    }
+    ValueList.push_back(new_pv);
+  }
   DealStmt(fde->getBody());
+  if(fun_ret_vals.find(funname) == fun_ret_vals.end()){
+    fun_ret_vals[funname].insert(0);
+  }
   layer = 0;
   try_layer = INT32_MAX;
   if_layer.clear();
-  return Posval;
-  //ValueList.clear();
+  ValueList.clear();
+}
+
+void Analyzer::DealReturnStmt(ReturnStmt *rtst){
+  Expr *rt_val = rtst->getRetValue();
+  if(rt_val != nullptr){
+    VarValue tmp = DealRValExpr(rt_val);
+    for(auto i:tmp.PosValue){
+      fun_ret_vals[funname].insert(i);
+    }
+  }
 }
 
 void Analyzer::DealStmt(Stmt *stmt) {
@@ -70,6 +101,10 @@ void Analyzer::DealStmt(Stmt *stmt) {
   } else if (cname == "CXXTryStmt") {
     CXXTryStmt *tyst = (CXXTryStmt *)stmt;
     DealCXXTryStmt(tyst);
+  }
+  else if(cname == "ReturnStmt"){
+    ReturnStmt* rtst = (ReturnStmt*)stmt;
+    DealReturnStmt(rtst);
   }
 }
 
@@ -395,6 +430,8 @@ auto Analyzer::DealRValExpr(Expr *expr) -> VarValue {
     PosResult = DealConditionalOperator((ConditionalOperator *)expr);
   } else if (stmt_class == "ArraySubscriptExpr") {
     PosResult = DealArraySubscriptExpr((ArraySubscriptExpr *)expr);
+  } else if (stmt_class == "CallExpr"){
+    PosResult = DealCallExpr((CallExpr*)expr);
   }
   return PosResult;
 }
@@ -801,6 +838,21 @@ auto Analyzer::DealArraySubscriptExpr(ArraySubscriptExpr *E) -> VarValue {
       PosResult.var_type = V_CHAR;
       PosResult.values = move(p);
     }
+  }
+  return PosResult;
+}
+
+auto Analyzer::DealCallExpr(CallExpr *E) -> VarValue {
+  const FunctionDecl* funDecl = E->getDirectCallee();
+  std::string cname(funDecl->getNameAsString());
+  VarValue PosResult;
+  if(fun_ret_vals.find(cname) != fun_ret_vals.end()){
+    for(auto i : fun_ret_vals[cname]){
+      PosResult.PosValue.insert(i);
+    }
+  }
+  else{
+    PosResult.PosValue.insert(0);
   }
   return PosResult;
 }

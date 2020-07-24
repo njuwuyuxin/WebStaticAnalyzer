@@ -1,27 +1,25 @@
-int testZero2(int a, int b){
-    return a+b;
+int t1();
+int t2();
+int t3();
+int t4();
+int t5();
+
+int t1(){
+    return t2()+t3();
 }
 
-int testZero1(){
-	int a=2;
-	int b=1; 
-    int c;
-    c=1/0;
-    if(a>0){
-        int d=2;
-        if(b > 0){
-            c=2/(b-1);
-        }
-    }
-    else {
-        int e=1;
-    }
-    try{
-        c=1/0;
-        throw 1;
-    }
-    catch(int i){
-        c=1;
-    }
-    return 0;
+int t2(){
+    return t4();
+}
+
+int t3(){
+   return t4();
+}
+
+int t4(){
+    return t5();
+}
+
+int t5(){
+    return t2()+1;
 }

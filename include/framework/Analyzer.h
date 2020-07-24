@@ -20,6 +20,7 @@
 #include <cstdint>
 #include <memory>
 #include <string>
+#include <map>
 
 using namespace clang;
 
@@ -45,6 +46,19 @@ using namespace clang;
 
 class Analyzer {
 public:
+
+  std::map<std::string, std::set<float>> fun_ret_vals;
+  void print_fun_vals(){
+    std::map<std::string, std::set<float>>::iterator iter = fun_ret_vals.begin();
+    for(;iter!=fun_ret_vals.end();iter++){
+      std::cout << "function:" << iter->first << std::endl;
+      std::cout << "Possible return values:";
+      for(auto i:iter->second){
+        std::cout << i << " ";
+      }
+      std::cout << std::endl;
+    }
+  }
 
   std::string funname;
   void setFunName(std::string name){funname = name;}
@@ -142,7 +156,8 @@ public:
     }
   }
 
-  VarValue DealFunctionDecl(const FunctionDecl *fde);
+  void DealFunctionDecl(const FunctionDecl *fde);
+  void DealReturnStmt(ReturnStmt *rtst);
   void DealStmt(Stmt *stmt);
   void DealVarDecl(VarDecl *var);
   void DealCompoundStmt(Stmt *stmt);
@@ -210,6 +225,7 @@ private:
   VarValue DealDivOp(VarValue v1, VarValue v2, BinaryOperator *E);
   VarValue DealModOp(VarValue v1, VarValue v2, BinaryOperator *E);
   VarValue DealArraySubscriptExpr(ArraySubscriptExpr *expr);
+  VarValue DealCallExpr(CallExpr *E);
 
   VarValue DealAddOp(VarValue v1, VarValue v2) {
     VarValue v3;

@@ -87,12 +87,33 @@ public:
 }
 
 void ZeroChecker::check() {
-    std::vector<ASTFunction *> Funcs = resource->getFunctions();
-    for (auto fun : Funcs) {
+    std::vector<ASTFunction *> tops = call_graph->getTopLevelFunctions();
+    queue<ASTFunction *> BFS;
+    std::vector<ASTFunction *> reverse_order_visit;
+    for(auto fun : tops){
+      BFS.push(fun);
+    }
+    while(!BFS.empty()){
+      auto topfun = BFS.front();
+      BFS.pop();
+      if(find(reverse_order_visit.begin(), reverse_order_visit.end(), topfun) == reverse_order_visit.end()){
+        reverse_order_visit.push_back(topfun);
+      }
+      auto topschild = call_graph->getChildren(topfun);
+      for(auto i:topschild){
+        if(find(reverse_order_visit.begin(), reverse_order_visit.end(), i) == reverse_order_visit.end()){
+          BFS.push(i);
+        }
+      }
+    }
+    Analyzer analyzer;
+    for (int i = reverse_order_visit.size()-1; i>-1; i--) {
+      auto fun = reverse_order_visit[i];
         // ValueList.clear();
         const FunctionDecl *funDecl = manager->getFunctionDecl(fun);
         getFunDecl(funDecl);
         auto stmt = funDecl->getBody();
+        if(stmt == nullptr) continue;
         ZeroVisitor visitor;
         visitor.getFun(funDecl);
         visitor.TraverseStmt(stmt);
@@ -100,14 +121,13 @@ void ZeroChecker::check() {
         //visitFunctionStmts(funDecl->getBody());
         //if(funDecl->getNameAsString() == "testZero1"){
         //cout << "testZero1 start" << endl;
-        Analyzer analyzer;
         analyzer.setFunName(funDecl->getNameAsString());
         analyzer.bindZeroChecker(this);
         analyzer.DealFunctionDecl(funDecl);
-        //analyzer.printValueList();
         //cout << "testZero1 end" << endl;
         //}
     }
+    analyzer.print_fun_vals();
     // defectsClearSamePlace();
 }
 
