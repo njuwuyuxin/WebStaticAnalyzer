@@ -136,8 +136,11 @@ void Analyzer::DealVarDecl(VarDecl *var) {
   new_var.var = var;
   new_var.layer = layer;
   if (var->hasInit()) {
-    new_var.isDefined = true;
-    new_var.PosValue = (DealRValExpr(var->getInit())).PosValue;
+    new_var.isDefined = true; 
+    auto tmp = (DealRValExpr(var->getInit()));
+    new_var.PosValue = tmp.PosValue;
+    new_var.values = tmp.values;
+    new_var.var_type = tmp.var_type;
   } else {
     new_var.isDefined = false;
     new_var.PosValue.insert(0);
@@ -390,6 +393,10 @@ auto Analyzer::DealRValExpr(Expr *expr) -> VarValue {
     PosResult.var_type = V_CHAR;
     PosResult.values = make_shared<UIntSet>(
         initializer_list<uint64_t>{((CharacterLiteral *)expr)->getValue()});
+  } else if (stmt_class == Stmt::StringLiteralClass){
+    PosResult.var_type = V_CHAR_ARRAY;
+    string str(((StringLiteral *)expr)->getString());
+    PosResult.values = make_shared<StrSet>(initializer_list<string>{str});
   } else if (stmt_class == Stmt::ImplicitCastExprClass) {
     auto sub_class =
         (((ImplicitCastExpr *)expr)->getSubExpr())->getStmtClass();
@@ -446,7 +453,7 @@ auto Analyzer::DealBinaryOperator(BinaryOperator *E) -> VarValue {
         PosResult.PosValue.insert(0);
       }
     } else if (LClass == Stmt::ArraySubscriptExprClass) {
-      auto arrayExpr = (ArraySubscriptExpr *)E->getLHS();
+      auto arrayExpr = (ArraySubscriptExpr *)(E->getLHS());
       auto var = DealRValExpr(arrayExpr->getBase());
       if (int pos = FindVarInList(var.var); pos != -1) {
         auto idx = DealRValExpr(arrayExpr->getIdx());
