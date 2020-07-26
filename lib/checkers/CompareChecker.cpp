@@ -69,18 +69,17 @@ void CompareChecker::check(){
 
 void CompareChecker::push_defect(Stmt* s, const ASTContext& context){
   Defect d;
-  auto &[location, info] = d;
-  location = s->getBeginLoc().printToString(context.getSourceManager());
-  info = "比较运算中混用了有无符号数";
-  addDefect(move(d));
+  string location = s->getBeginLoc().printToString(context.getSourceManager());
+  string info = "比较运算中混用了有无符号数";
+  get<0>(d) = location;
+  get<1>(d) = info;
+  addDefect(d);
 }
 
 void CompareChecker::push_warning(Stmt* s, const ASTContext& context){
-  Defect d;
-  auto &[location, info] = d;
-  location = s->getBeginLoc().printToString(context.getSourceManager());
-  info = "warning: 比较运算中可能混用了有无符号数";
-  addDefect(move(d));
+  string location = s->getBeginLoc().printToString(context.getSourceManager());
+  string info = "warning: 比较运算中可能混用了有无符号数";
+  addDefect(make_tuple(location,info));
 }
 
 /*

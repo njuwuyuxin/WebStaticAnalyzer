@@ -13,12 +13,12 @@ void Serialize(PrettyWriter<StringBuffer> &writer, Result r) {
   writer.String(r.checkerName);
   writer.Key("defects");
   writer.StartArray();
-  for (auto &&[location, info] : r.defects) {
+  for (auto &&d : r.defects) {
     writer.StartObject();
     writer.Key("location");
-    writer.String(location);
+    writer.String(get<0>(d));
     writer.Key("info");
-    writer.String(info);
+    writer.String(get<1>(d));
     writer.EndObject();
   }
   writer.EndArray();
@@ -69,7 +69,9 @@ void CheckerManager::check_all() {
   PrettyWriter<StringBuffer> writer(s);
   writer.StartArray();
 
-  for (auto &&[checker, checkerName] : checkers) {
+  for (auto &&c : checkers) {
+    BasicChecker* checker = c.first;
+    string checkerName = c.second;
     if (enable.find(checkerName) == enable.end()) {
       cout << "Checker: " << checkerName << " not found in config.txt" << endl;
       cout << checkerName << " not executed" << endl;

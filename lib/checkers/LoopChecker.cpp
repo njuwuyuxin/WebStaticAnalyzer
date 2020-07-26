@@ -362,11 +362,9 @@ void LoopChecker::check()
 
         for (auto &&DefectStmt : DefectList)
         {
-            Defect d;
-            auto &[location, info] = d;
-            location = DefectStmt.Statement->getBeginLoc().printToString(sm);
-            info = "存在可能的死循環 (" + DefectStmt.info + ")";
-            addDefect(move(d));
+            string location = DefectStmt.Statement->getBeginLoc().printToString(sm);
+            string info = "存在可能的死循環 (" + DefectStmt.info + ")";
+            addDefect(make_tuple(location,info));
         }
     }
 

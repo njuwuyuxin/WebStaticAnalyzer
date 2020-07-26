@@ -1,5 +1,5 @@
 #include "framework/Analyzer.h"
-#include <bits/stdint-uintn.h>
+// #include <bits/stdint-uintn.h>
 #include <initializer_list>
 #include <memory>
 
@@ -455,7 +455,8 @@ auto Analyzer::DealBinaryOperator(BinaryOperator *E) -> VarValue {
     } else if (LClass == Stmt::ArraySubscriptExprClass) {
       auto arrayExpr = (ArraySubscriptExpr *)(E->getLHS());
       auto var = DealRValExpr(arrayExpr->getBase());
-      if (int pos = FindVarInList(var.var); pos != -1) {
+      int pos = FindVarInList(var.var);
+      if (pos != -1) {
         auto idx = DealRValExpr(arrayExpr->getIdx());
         auto rhs = DealRValExpr(E->getRHS());
         if (idx.PosValue.empty() || rhs.values == nullptr) {
@@ -473,7 +474,8 @@ auto Analyzer::DealBinaryOperator(BinaryOperator *E) -> VarValue {
             }
             for (auto &&s : *values) {
               for (auto &&c : *rhsvalues) {
-                if (auto end = s.find('\0'); end != string::npos && i > end) {
+                auto end = s.find('\0');
+                if (end != string::npos && i > end) {
                   report(arrayExpr, var);
                 }
                 if (s[i] != c) {
@@ -831,7 +833,8 @@ auto Analyzer::DealArraySubscriptExpr(ArraySubscriptExpr *E) -> VarValue {
       }
       auto p = make_shared<UIntSet>();
       for (auto &&s : *values) {
-        if (auto end = s.find('\0'); end != string::npos && i > end) {
+        auto end = s.find('\0');
+        if (end != string::npos && i > end) {
           report(E, var);
         }
         p->insert(s[i]);

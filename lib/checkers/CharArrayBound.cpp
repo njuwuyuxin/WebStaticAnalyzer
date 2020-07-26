@@ -109,7 +109,7 @@ void CharArrayBound::check() {
 }
 
 void CharArrayBound::report(const Expr *expr, int level) {
-  addDefect({expr->getExprLoc().printToString(*sm), DefectInfo[level]});
+  addDefect(make_tuple(expr->getExprLoc().printToString(*sm), DefectInfo[level]));
 }
 
 void CharArrayBound::getEntryFunc() {

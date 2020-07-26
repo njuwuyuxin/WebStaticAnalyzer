@@ -76,15 +76,13 @@ public:
           }
           //若enumElements非空，则说明有枚举情况尚未覆盖
           if(enumElements.size()!=0){
-            Defect df;
-            auto &[location, info] = df;
-            location = E->getBeginLoc().printToString(ctx.getSourceManager());
-            info = "存在尚未覆盖的枚举类型\n";
+            string location = E->getBeginLoc().printToString(ctx.getSourceManager());
+            string info = "存在尚未覆盖的枚举类型\n";
             for(auto i:enumElements){
               info += i;
               info += " ";
             }
-            defects.push_back(df);
+            defects.push_back(make_tuple(location,info));
           }
           break;
         }

@@ -37,8 +37,6 @@ public:
         if(ro->EvaluateAsConstantExpr(rst, Usage, funDecl->getASTContext())){
           //string begin = ro->getBeginLoc().printToString(funDecl->getASTContext().getSourceManager());
           //cout << begin << endl;
-          Defect d;
-          auto &[location, info] = d;
           auto &sm = funDecl->getASTContext().getSourceManager();
           APValue::ValueKind vtp = rst.Val.getKind();
           switch(vtp){
@@ -46,27 +44,27 @@ public:
               int64_t val = rst.Val.getInt().getExtValue();
               //cout <<val<<endl;
               if(val == 0){
-                location = ro->getBeginLoc().printToString(sm);
-                info = "error:操作符"+opt+"的右操作数是结果为0的常数表达式";
-                defects.push_back(d);
+                string location = ro->getBeginLoc().printToString(sm);
+                string info = "error:操作符"+opt+"的右操作数是结果为0的常数表达式";
+                defects.push_back(make_tuple(location,info));
               }
             }break;
             case APValue::Float:{
               float val = rst.Val.getFloat().convertToFloat();
               //cout <<val<<endl;
               if(val == 0){
-                location = ro->getBeginLoc().printToString(sm);
-                info = "error:操作符"+opt+"的右操作数是结果为0的常数表达式";
-                defects.push_back(d);
+                string location = ro->getBeginLoc().printToString(sm);
+                string info = "error:操作符"+opt+"的右操作数是结果为0的常数表达式";
+                defects.push_back(make_tuple(location,info));
               }
             }break;
             case APValue::FixedPoint:{
               int64_t val = rst.Val.getFixedPoint().getValue().getExtValue();
               //cout <<val<<endl;
               if(val == 0){
-                location = ro->getBeginLoc().printToString(sm);
-                info = "error:操作符"+opt+"的右操作数是结果为0的常数表达式";
-                defects.push_back(d);
+                string location = ro->getBeginLoc().printToString(sm);
+                string info = "error:操作符"+opt+"的右操作数是结果为0的常数表达式";
+                defects.push_back(make_tuple(location,info));
               }
             }break;
             default:break;
@@ -132,15 +130,13 @@ void ZeroChecker::check() {
 }
 
 void ZeroChecker::report(const Expr *expr, int level) {
-  Defect d;
-  auto &[location, info] = d;
   BinaryOperator *E = (BinaryOperator *)expr;
   Expr* ro = E->getRHS()->IgnoreParenCasts()->IgnoreImpCasts();
   int opt = E->getOpcodeStr() == "/" ? 0 : 1;
   auto &sm = funDecl->getASTContext().getSourceManager();
-  location = ro->getBeginLoc().printToString(sm);
-  info = DefectInfo[level][opt];
-  addDefect(move(d));
+  string location = ro->getBeginLoc().printToString(sm);
+  string info = DefectInfo[level][opt];
+  addDefect(make_tuple(location,info));
 }
 /*
 void ZeroChecker::visitFunctionStmts(Stmt *stmt){
