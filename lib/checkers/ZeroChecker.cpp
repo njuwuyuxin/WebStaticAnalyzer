@@ -127,7 +127,7 @@ void ZeroChecker::check() {
         //cout << "testZero1 end" << endl;
         //}
     }
-    analyzer.print_fun_vals();
+    //analyzer.print_fun_vals();
     // defectsClearSamePlace();
 }
 

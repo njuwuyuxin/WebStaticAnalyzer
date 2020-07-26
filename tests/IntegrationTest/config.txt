@@ -1,6 +1,6 @@
 CheckerEnable
 {
-	CharArrayBound = true
+	CharArrayBound = false
 	CompareChecker = true
 	SwitchChecker = true
 	ZeroChecker = true

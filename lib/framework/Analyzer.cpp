@@ -68,43 +68,66 @@ void Analyzer::DealReturnStmt(ReturnStmt *rtst){
 void Analyzer::DealStmt(Stmt *stmt) {
   if (stmt == nullptr)
     return;
-  string cname(stmt->getStmtClassName());
-  if (cname == "DeclStmt") {
+  auto cname = stmt->getStmtClass();
+  switch(cname){
+  case Stmt::DeclStmtClass: {
     DeclStmt *decltmp = (DeclStmt *)stmt;
     if (decltmp->isSingleDecl()) {
-      DealVarDecl((VarDecl *)(decltmp->getSingleDecl()));
+      if(decltmp->getSingleDecl()->getKind() == clang::Decl::Kind::Var){
+        DealVarDecl((VarDecl *)(decltmp->getSingleDecl()));
+      }
     }
-  } else if (cname == "BinaryOperator" || cname == "CompoundAssignOperator") {
+    else {
+      auto decls = decltmp->getDeclGroup();
+      DeclGroupRef::iterator iter = decls.begin();
+      for(;iter!=decls.end();iter++){
+        if((*iter)->getKind() == clang::Decl::Kind::Var){
+          DealVarDecl((VarDecl *)(*iter));
+        }
+      }
+    }
+  }break; 
+  case Stmt::BinaryOperatorClass: case Stmt::CompoundAssignOperatorClass: {
     BinaryOperator *bopt = (BinaryOperator *)stmt;
     DealBinaryOperator(bopt);
-  } else if (cname == "UnaryOperator") {
+  }break;
+  case Stmt::UnaryOperatorClass: {
     UnaryOperator *uopt = (UnaryOperator *)stmt;
     DealUnaryOperator(uopt);
-  } else if (cname == "IfStmt") {
+  }break;
+  case Stmt::IfStmtClass: {
     IfStmt *ist = (IfStmt *)stmt;
     DealIfStmt(ist);
-  } else if (cname == "CompoundStmt") {
+  }break;
+  case Stmt::CompoundStmtClass: {
     CompoundStmt *cst = (CompoundStmt *)stmt;
     DealCompoundStmt(cst);
-  } else if (cname == "SwitchStmt") {
+  }break;
+  case Stmt::SwitchStmtClass: {
     SwitchStmt *sst = (SwitchStmt *)stmt;
     DealSwitchStmt(sst);
-  } else if (cname == "ForStmt") {
+  }break;
+  case Stmt::ForStmtClass: {
     ForStmt *fst = (ForStmt *)stmt;
     DealForStmt(fst);
-  } else if (cname == "WhileStmt") {
+  }break;
+  case Stmt::WhileStmtClass: {
     WhileStmt *wst = (WhileStmt *)stmt;
     DealWhileStmt(wst);
-  } else if (cname == "DoStmt") {
+  }break;
+  case Stmt::DoStmtClass: {
     DoStmt *dst = (DoStmt *)stmt;
     DealDoStmt(dst);
-  } else if (cname == "CXXTryStmt") {
+  }break;
+  case Stmt::CXXTryStmtClass: {
     CXXTryStmt *tyst = (CXXTryStmt *)stmt;
     DealCXXTryStmt(tyst);
-  }
-  else if(cname == "ReturnStmt"){
+  }break;
+  case Stmt::ReturnStmtClass:{
     ReturnStmt* rtst = (ReturnStmt*)stmt;
     DealReturnStmt(rtst);
+  }break;
+  default:break;
   }
 }
 
@@ -114,36 +137,7 @@ void Analyzer::DealVarDecl(VarDecl *var) {
   new_var.layer = layer;
   if (var->hasInit()) {
     new_var.isDefined = true;
-    var->evaluateValue();
-    if (auto value = var->getEvaluatedValue(); value != nullptr) {
-      switch (value->getKind()) {
-      case APValue::Int: {
-        int64_t val = value->getInt().getExtValue();
-        new_var.var_type = V_INT;
-        new_var.PosValue.insert(val);
-      } break;
-      case APValue::Float: {
-        float val = value->getFloat().convertToDouble();
-        new_var.var_type = V_FLOAT;
-        new_var.PosValue.insert(val);
-      } break;
-      case APValue::Array:
-        if (var->getType().getAsString().find("char ") != string::npos) {
-          new_var.var_type = V_CHAR_ARRAY;
-          string str(value->getArraySize(), '\0');
-          for (unsigned int i = 0; i < value->getArrayInitializedElts(); ++i) {
-            str[i] = value->getArrayInitializedElt(i).getInt().getExtValue();
-          }
-          new_var.values = make_shared<StrSet>(initializer_list<string>{str});
-        }
-        break;
-      default: {
-        new_var.PosValue = (DealRValExpr(var->getInit())).PosValue;
-      } break;
-      }
-    } else {
-      // new_var.PosValue = DealRValExpr(var->getInit());
-    }
+    new_var.PosValue = (DealRValExpr(var->getInit())).PosValue;
   } else {
     new_var.isDefined = false;
     new_var.PosValue.insert(0);
@@ -212,8 +206,8 @@ void Analyzer::DealIfStmt(IfStmt *ist) {
 
 void Analyzer::DealCompoundStmt(Stmt *stmt) {
   IncLayer();
-  string cname(stmt->getStmtClassName());
-  if (cname == "CompoundStmt") {
+  auto cname = stmt->getStmtClass();
+  if (cname == Stmt::CompoundStmtClass) {
     CompoundStmt *cst = (CompoundStmt *)stmt;
     for (auto it = cst->body_begin(); it != cst->body_end(); it++) {
       DealStmt(*it);
@@ -232,21 +226,21 @@ void Analyzer::DealSwitchStmt(SwitchStmt *sst) {
   bool canVisit = false;
   DefaultStmt *dest = nullptr;
   while (case_begin != nullptr) {
-    string case_name(case_begin->getStmtClassName());
+    auto case_name = case_begin->getStmtClass();
     stored = ValueList;
-    if (case_name == "CaseStmt") {
+    if (case_name == Stmt::CaseStmtClass) {
       CaseStmt *cast = (CaseStmt *)case_begin;
       canVisit = judgeConsist(condvar, DealRValExpr(cast->getLHS()));
       if (canVisit) {
         Stmt *sub = cast->getSubStmt();
-        string subname(sub->getStmtClassName());
-        while (subname == "CaseStmt") {
+        auto subname = sub->getStmtClass();
+        while (subname == Stmt::CaseStmtClass) {
           sub = ((CaseStmt *)sub)->getSubStmt();
-          subname = sub->getStmtClassName();
+          subname = sub->getStmtClass();
         }
         DealCompoundStmt(sub);
       }
-    } else if (case_name == "DefaultStmt") {
+    } else if (case_name == Stmt::DefaultStmtClass) {
       dest = (DefaultStmt *)case_begin;
     }
     case_begin = case_begin->getNextSwitchCase();
@@ -347,8 +341,8 @@ void Analyzer::DealCXXTryStmt(CXXTryStmt *tyst){
   CompoundStmt *cst = tyst->getTryBlock();
   CXXThrowExpr *trst = nullptr;
   for (auto it = cst->body_begin(); it != cst->body_end(); it++) {
-    string cname((*it)->getStmtClassName());
-    if(cname == "CXXThrowExpr"){
+    auto cname = (*it)->getStmtClass();
+    if(cname == Stmt::CXXThrowExprClass){
       trst = (CXXThrowExpr*)(*it);
       break;
     }
@@ -364,11 +358,11 @@ void Analyzer::DealCXXTryStmt(CXXTryStmt *tyst){
 }
 
 auto Analyzer::DealRValExpr(Expr *expr) -> VarValue {
-  string stmt_class = expr->getStmtClassName();
+  auto stmt_class = expr->getStmtClass();
   VarValue PosResult;
-  if (stmt_class == "ParenExpr") {
+  if (stmt_class == Stmt::ParenExprClass) {
     PosResult = DealRValExpr(((ParenExpr *)expr)->getSubExpr());
-  } else if (stmt_class == "ConstantExpr") {
+  } else if (stmt_class == Stmt::ConstantExprClass) {
     ConstantExpr *cex = (ConstantExpr *)expr;
     switch (cex->getAPValueResult().getKind()) {
     case APValue::Int: {
@@ -384,22 +378,22 @@ auto Analyzer::DealRValExpr(Expr *expr) -> VarValue {
     default: {
     } break;
     }
-  } else if (stmt_class == "IntegerLiteral") {
+  } else if (stmt_class == Stmt::IntegerLiteralClass) {
     PosResult.var_type = V_INT;
     PosResult.PosValue.insert(
         ((IntegerLiteral *)expr)->getValue().getLimitedValue());
-  } else if (stmt_class == "FloatingLiteral") {
+  } else if (stmt_class == Stmt::FloatingLiteralClass) {
     PosResult.var_type = V_FLOAT;
     PosResult.PosValue.insert(
         ((FloatingLiteral *)expr)->getValue().convertToDouble());
-  } else if (stmt_class == "CharacterLiteral") {
+  } else if (stmt_class == Stmt::CharacterLiteralClass) {
     PosResult.var_type = V_CHAR;
     PosResult.values = make_shared<UIntSet>(
         initializer_list<uint64_t>{((CharacterLiteral *)expr)->getValue()});
-  } else if (stmt_class == "ImplicitCastExpr") {
-    string sub_class =
-        (((ImplicitCastExpr *)expr)->getSubExpr())->getStmtClassName();
-    if (sub_class == "DeclRefExpr") {
+  } else if (stmt_class == Stmt::ImplicitCastExprClass) {
+    auto sub_class =
+        (((ImplicitCastExpr *)expr)->getSubExpr())->getStmtClass();
+    if (sub_class == Stmt::DeclRefExprClass) {
       DeclRefExpr *sub =
           (DeclRefExpr *)(((ImplicitCastExpr *)expr)->getSubExpr());
       int pos = FindVarInList((VarDecl *)(sub->getDecl()));
@@ -408,13 +402,13 @@ auto Analyzer::DealRValExpr(Expr *expr) -> VarValue {
       } else {
         PosResult.PosValue.insert(0);
       }
-    } else if (sub_class == "UnaryOperator") {
+    } else if (sub_class == Stmt::UnaryOperatorClass) {
       PosResult = DealUnaryOperator(
           (UnaryOperator *)(((ImplicitCastExpr *)expr)->getSubExpr()));
     } else {
       return DealRValExpr(((ImplicitCastExpr *)expr)->getSubExpr());
     }
-  } else if (stmt_class == "DeclRefExpr") {
+  } else if (stmt_class == Stmt::DeclRefExprClass) {
     DeclRefExpr *sub = (DeclRefExpr *)expr;
     int pos = FindVarInList((VarDecl *)(sub->getDecl()));
     if (pos != -1) {
@@ -422,15 +416,15 @@ auto Analyzer::DealRValExpr(Expr *expr) -> VarValue {
     } else {
       PosResult.PosValue.insert(0);
     }
-  } else if (stmt_class == "BinaryOperator") {
+  } else if (stmt_class == Stmt::BinaryOperatorClass) {
     PosResult = DealBinaryOperator((BinaryOperator *)expr);
-  } else if (stmt_class == "UnaryOperator") {
+  } else if (stmt_class == Stmt::UnaryOperatorClass) {
     PosResult = DealUnaryOperator((UnaryOperator *)expr);
-  } else if (stmt_class == "ConditionalOperator") {
+  } else if (stmt_class == Stmt::ConditionalOperatorClass) {
     PosResult = DealConditionalOperator((ConditionalOperator *)expr);
-  } else if (stmt_class == "ArraySubscriptExpr") {
+  } else if (stmt_class == Stmt::ArraySubscriptExprClass) {
     PosResult = DealArraySubscriptExpr((ArraySubscriptExpr *)expr);
-  } else if (stmt_class == "CallExpr"){
+  } else if (stmt_class == Stmt::CallExprClass){
     PosResult = DealCallExpr((CallExpr*)expr);
   }
   return PosResult;
@@ -440,8 +434,8 @@ auto Analyzer::DealBinaryOperator(BinaryOperator *E) -> VarValue {
   VarValue PosResult;
   switch (E->getOpcode()) {
   case BO_Assign: {
-    string LClass(E->getLHS()->getStmtClassName());
-    if (LClass == "DeclRefExpr") {
+    auto LClass = E->getLHS()->getStmtClass();
+    if (LClass == Stmt::DeclRefExprClass) {
       int pos =
           FindVarInList((VarDecl *)(((DeclRefExpr *)(E->getLHS()))->getDecl()));
       if (pos != -1) {
@@ -451,7 +445,7 @@ auto Analyzer::DealBinaryOperator(BinaryOperator *E) -> VarValue {
       } else {
         PosResult.PosValue.insert(0);
       }
-    } else if (LClass == "ArraySubscriptExpr") {
+    } else if (LClass == Stmt::ArraySubscriptExprClass) {
       auto arrayExpr = (ArraySubscriptExpr *)E->getLHS();
       auto var = DealRValExpr(arrayExpr->getBase());
       if (int pos = FindVarInList(var.var); pos != -1) {
@@ -544,8 +538,8 @@ auto Analyzer::DealBinaryOperator(BinaryOperator *E) -> VarValue {
     return DealNEOp(DealRValExpr(E->getLHS()), DealRValExpr(E->getRHS()));
   } break;
   case BO_AddAssign:{
-    string LClass(E->getLHS()->getStmtClassName());
-    if (LClass == "DeclRefExpr") {
+    auto LClass = E->getLHS()->getStmtClass();
+    if (LClass == Stmt::DeclRefExprClass) {
       int pos =
           FindVarInList((VarDecl *)(((DeclRefExpr *)(E->getLHS()))->getDecl()));
       if (pos != -1) {
@@ -562,8 +556,8 @@ auto Analyzer::DealBinaryOperator(BinaryOperator *E) -> VarValue {
     }
   }break;
   case BO_SubAssign:{
-    string LClass(E->getLHS()->getStmtClassName());
-    if (LClass == "DeclRefExpr") {
+    auto LClass = E->getLHS()->getStmtClass();
+    if (LClass == Stmt::DeclRefExprClass) {
       int pos =
           FindVarInList((VarDecl *)(((DeclRefExpr *)(E->getLHS()))->getDecl()));
       if (pos != -1) {
@@ -580,8 +574,8 @@ auto Analyzer::DealBinaryOperator(BinaryOperator *E) -> VarValue {
     }
   }break;
   case BO_MulAssign:{
-    string LClass(E->getLHS()->getStmtClassName());
-    if (LClass == "DeclRefExpr") {
+    auto LClass = E->getLHS()->getStmtClass();
+    if (LClass == Stmt::DeclRefExprClass) {
       int pos =
           FindVarInList((VarDecl *)(((DeclRefExpr *)(E->getLHS()))->getDecl()));
       if (pos != -1) {
@@ -598,8 +592,8 @@ auto Analyzer::DealBinaryOperator(BinaryOperator *E) -> VarValue {
     }
   }break;
   case BO_DivAssign:{
-    string LClass(E->getLHS()->getStmtClassName());
-    if (LClass == "DeclRefExpr") {
+    auto LClass = E->getLHS()->getStmtClass();
+    if (LClass == Stmt::DeclRefExprClass) {
       int pos =
           FindVarInList((VarDecl *)(((DeclRefExpr *)(E->getLHS()))->getDecl()));
       if (pos != -1) {
@@ -616,8 +610,8 @@ auto Analyzer::DealBinaryOperator(BinaryOperator *E) -> VarValue {
     }
   }break;
   case BO_RemAssign:{
-    string LClass(E->getLHS()->getStmtClassName());
-    if (LClass == "DeclRefExpr") {
+    auto LClass = E->getLHS()->getStmtClass();
+    if (LClass == Stmt::DeclRefExprClass) {
       int pos =
           FindVarInList((VarDecl *)(((DeclRefExpr *)(E->getLHS()))->getDecl()));
       if (pos != -1) {
@@ -634,8 +628,8 @@ auto Analyzer::DealBinaryOperator(BinaryOperator *E) -> VarValue {
     }
   }break;
   case BO_AndAssign:{
-    string LClass(E->getLHS()->getStmtClassName());
-    if (LClass == "DeclRefExpr") {
+    auto LClass = E->getLHS()->getStmtClass();
+    if (LClass == Stmt::DeclRefExprClass) {
       int pos =
           FindVarInList((VarDecl *)(((DeclRefExpr *)(E->getLHS()))->getDecl()));
       if (pos != -1) {
@@ -652,8 +646,8 @@ auto Analyzer::DealBinaryOperator(BinaryOperator *E) -> VarValue {
     }
   }break;
   case BO_OrAssign:{
-    string LClass(E->getLHS()->getStmtClassName());
-    if (LClass == "DeclRefExpr") {
+    auto LClass = E->getLHS()->getStmtClass();
+    if (LClass == Stmt::DeclRefExprClass) {
       int pos =
           FindVarInList((VarDecl *)(((DeclRefExpr *)(E->getLHS()))->getDecl()));
       if (pos != -1) {
@@ -670,8 +664,8 @@ auto Analyzer::DealBinaryOperator(BinaryOperator *E) -> VarValue {
     }
   }break;
   case BO_XorAssign:{
-    string LClass(E->getLHS()->getStmtClassName());
-    if (LClass == "DeclRefExpr") {
+    auto LClass = E->getLHS()->getStmtClass();
+    if (LClass == Stmt::DeclRefExprClass) {
       int pos =
           FindVarInList((VarDecl *)(((DeclRefExpr *)(E->getLHS()))->getDecl()));
       if (pos != -1) {
@@ -688,8 +682,8 @@ auto Analyzer::DealBinaryOperator(BinaryOperator *E) -> VarValue {
     }
   }break;
   case BO_ShlAssign:{
-    string LClass(E->getLHS()->getStmtClassName());
-    if (LClass == "DeclRefExpr") {
+    auto LClass = E->getLHS()->getStmtClass();
+    if (LClass == Stmt::DeclRefExprClass) {
       int pos =
           FindVarInList((VarDecl *)(((DeclRefExpr *)(E->getLHS()))->getDecl()));
       if (pos != -1) {
@@ -706,8 +700,8 @@ auto Analyzer::DealBinaryOperator(BinaryOperator *E) -> VarValue {
     }
   }break;
   case BO_ShrAssign:{
-    string LClass(E->getLHS()->getStmtClassName());
-    if (LClass == "DeclRefExpr") {
+    auto LClass = E->getLHS()->getStmtClass();
+    if (LClass == Stmt::DeclRefExprClass) {
       int pos =
           FindVarInList((VarDecl *)(((DeclRefExpr *)(E->getLHS()))->getDecl()));
       if (pos != -1) {
@@ -843,16 +837,21 @@ auto Analyzer::DealArraySubscriptExpr(ArraySubscriptExpr *E) -> VarValue {
 }
 
 auto Analyzer::DealCallExpr(CallExpr *E) -> VarValue {
-  const FunctionDecl* funDecl = E->getDirectCallee();
-  std::string cname(funDecl->getNameAsString());
   VarValue PosResult;
-  if(fun_ret_vals.find(cname) != fun_ret_vals.end()){
-    for(auto i : fun_ret_vals[cname]){
-      PosResult.PosValue.insert(i);
-    }
+  const FunctionDecl* funDecl = E->getDirectCallee();
+  if(funDecl == nullptr){
+    PosResult.PosValue.insert(0);
   }
   else{
-    PosResult.PosValue.insert(0);
+    std::string cname(funDecl->getNameAsString());
+    if(fun_ret_vals.find(cname) != fun_ret_vals.end()){
+      for(auto i : fun_ret_vals[cname]){
+        PosResult.PosValue.insert(i);
+      }
+    }
+    else{
+      PosResult.PosValue.insert(0);
+    }
   }
   return PosResult;
 }
