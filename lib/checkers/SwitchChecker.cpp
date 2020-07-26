@@ -39,7 +39,10 @@ public:
         return true;      //如果该switch语句的条件不是枚举类型，则直接返回
 
       TagType* tag = (TagType*)type;
-      string conditionEnumName = tag->getDecl()->getNameAsString();   //获取枚举变量定义中枚举类型的名称
+      TagDecl* tdecl = tag->getDecl();
+      if(tdecl==NULL)
+        return true;
+      string conditionEnumName = tdecl->getNameAsString();   //获取枚举变量定义中枚举类型的名称
        
       for(EnumDecl* ED:EDs){
         string EnumName = ED->getNameAsString();
