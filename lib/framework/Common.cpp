@@ -24,10 +24,33 @@ public:
     if (!D)
       return true;
     bool rval = true;
-    if (D->getASTContext().getSourceManager().isInMainFile(D->getLocation()) ||
+
+    SourceManager &SM = D->getASTContext().getSourceManager();
+    if (SM.isInMainFile(D->getLocation()) ||
         D->getKind() == Decl::TranslationUnit) {
       rval = RecursiveASTVisitor<ASTFunctionLoad>::TraverseDecl(D);
     }
+    //排除位于系统头文件（如iostream）中的情况
+    else if (!(SM.isInSystemHeader(D->getLocation()) ||
+               SM.isInExternCSystemHeader(D->getLocation()) ||
+               SM.isInSystemMacro(D->getLocation()))) {
+      std::pair<FileID, unsigned> XOffs = SM.getDecomposedLoc(AULoc);
+      std::pair<FileID, unsigned> YOffs = SM.getDecomposedLoc(D->getLocation());
+      //判断该Decl是否与主文件在同一个TranslateUnit中
+      std::pair<bool, bool> InSameTU =
+          SM.isInTheSameTranslationUnit(XOffs, YOffs);
+      //判断是否位于同一个TranslationUnit中，以及该Decl
+      //是否应该被包含于分析过程中
+      if (InSameTU.first){
+        // cout<<"pass first check"<<endl;
+        if(includeOrNot(D)) {
+          // cout<<"pass second check"<<endl;
+          // cout<<"get in!"<<endl;
+          rval = RecursiveASTVisitor<ASTFunctionLoad>::TraverseDecl(D);
+        }
+      }
+    }
+
     return rval;
   }
   bool TraverseFunctionDecl(FunctionDecl *FD) {
@@ -50,6 +73,8 @@ public:
   }
 
   bool TraverseStmt(Stmt *S) { return true; }
+  void setSourceLoc(SourceLocation SL) { AULoc = SL; }
+
 
   const std::vector<FunctionDecl *> &getFunctions() const { return functions; }
   const std::vector<EnumDecl *> &getEnums() const { return enums; }
@@ -59,6 +84,51 @@ private:
   std::vector<FunctionDecl *> functions;
   std::vector<EnumDecl *> enums;
   std::vector<VarDecl *> vars;
+  SourceLocation AULoc;
+
+  bool includeOrNot(const Decl *D) {
+    assert(D);
+    // 头文件中有自定义类时，形成的AST中其相应的CXXRecordDecl会与主文件代码
+    // 存在于同一个TranslationUnit中，但CXXRecordDecl此处会因为hasbody被
+    // return
+    // false，导致其子节点无法被继续访问，无法获取其在.h文件中的成员函数信息
+    // 因此对CXXRecordDecl的节点直接return true以访问类内成员的信息
+    if (const CXXRecordDecl *CD = dyn_cast<CXXRecordDecl>(D)) {
+      return true;
+    }
+    if (const EnumDecl *ED = dyn_cast<EnumDecl>(D)) {
+      // cout<<"Enum Decl"<<endl;
+      return true;
+    }
+    else{
+      return false;
+    }
+
+    if (!D->hasBody()){
+      cout<<"has no body so false"<<endl;
+      return false;
+    }
+
+    if (const FunctionDecl *FD = dyn_cast<FunctionDecl>(D)) {
+      cout<<"func decl"<<endl;
+      // We skip function template definitions, as their semantics is
+      // only determined when they are instantiated.
+      if (FD->isDependentContext())
+        return false;
+      // judge if D is inline
+      // this part may change in the future
+      if (FD->isInlineSpecified()) {
+        // return false;
+      }
+      // AST节点中未发现IdentifierInfo相关信息，且inline函数
+      //也没有发现 "__inline" 相关字符串，测试时此条删除暂时没有
+      //发现对结果的影响，后续若证实无用可移除下面的代码
+      IdentifierInfo *II = FD->getIdentifier();
+      if (II && II->getName().startswith("__inline"))
+        return false;
+    }
+    return true;
+  }
 };
 
 class ASTVariableLoad : public RecursiveASTVisitor<ASTVariableLoad> {
@@ -131,8 +201,9 @@ std::unique_ptr<ASTUnit> loadFromASTFile(std::string AST) {
 /**
  * get all functions's decl from an ast context.
  */
-std::vector<FunctionDecl *> getFunctions(ASTContext &Context) {
+std::vector<FunctionDecl *> getFunctions(ASTContext &Context,SourceLocation SL) {
   ASTFunctionLoad load;
+  load.setSourceLoc(SL);
   load.HandleTranslationUnit(Context);
   return load.getFunctions();
 }
@@ -140,8 +211,9 @@ std::vector<FunctionDecl *> getFunctions(ASTContext &Context) {
 /**
  * get all enums's decl from an ast context.
  */
-std::vector<EnumDecl *> getEnums(ASTContext &Context) {
+std::vector<EnumDecl *> getEnums(ASTContext &Context,SourceLocation SL) {
   ASTFunctionLoad load;
+  load.setSourceLoc(SL);
   load.HandleTranslationUnit(Context);
   return load.getEnums();
 }

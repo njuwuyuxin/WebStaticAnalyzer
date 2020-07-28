@@ -11,6 +11,7 @@
 #include "Config.h"
 
 using namespace clang;
+using namespace std;
 
 /**
  * the resource of AST.
@@ -22,7 +23,7 @@ public:
 
   const std::vector<ASTFunction *> &getFunctions(bool use = true) const;
   std::vector<ASTFile *> getASTFiles() const;
-  std::vector<EnumDecl *> getEnums() const;
+  std::unordered_map<string,EnumDecl*> getEnums() const;
   std::vector<VarDecl *> getVarDecl() const;
 
   friend class ASTManager;
@@ -32,7 +33,7 @@ private:
 
   std::vector<ASTFunction *> ASTFunctions;
   std::vector<ASTVariable *> ASTVariables;
-  std::vector<EnumDecl *> Enums;
+  std::unordered_map<string,EnumDecl*> Enums;
   std::vector<VarDecl *> VarDecls;
 
   std::vector<ASTFunction *> useASTFunctions;
