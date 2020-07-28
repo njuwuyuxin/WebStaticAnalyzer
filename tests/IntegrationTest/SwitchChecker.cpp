@@ -1,7 +1,7 @@
 #include <iostream>
 using namespace std;
-enum Week {Mon,Tue,Wed};
-enum Month {Jan,Feb,Mar,Apr,May,June,July};
+enum WeekEnum {Mon,Tue,Wed};
+enum MonthEnum {Jan,Feb,Mar,Apr,May,June,July};
 
 void TestExprSwitch(){
 	int i=0;
@@ -25,7 +25,7 @@ void TestExprSwitch(){
 
 void intTestDefault(){
 	int b=0;
-	Week week=Mon;
+	WeekEnum week=Mon;
 	switch(week){
 		case Mon: b=1;break;
 		case Tue: b=2;break;
@@ -35,8 +35,8 @@ void intTestDefault(){
 
 int TestSwitch(){
 	int a=0;
-	Week week=Mon;
-	Month month=Jan;
+	WeekEnum week=Mon;
+	MonthEnum month=Jan;
 	switch(a){
 		case 1: cout<<1<<endl; break;
 		case 2: cout<<2<<endl; break;

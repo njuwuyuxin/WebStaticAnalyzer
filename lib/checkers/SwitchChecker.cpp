@@ -33,19 +33,23 @@ public:
         //如果无法得到条件变量的声明语句，说明条件变量为表达式，不需进行后续分析
         return true;
       }
-      TypeDecl* TD = (TypeDecl*)(cond_decl);
-      const clang::Type* type = TD->getTypeForDecl();   //获取枚举变量定义中的类型信息
-      if(type->isEnumeralType()==false)
-        return true;      //如果该switch语句的条件不是枚举类型，则直接返回
-
-      TagType* tag = (TagType*)type;
-      TagDecl* tdecl = tag->getDecl();
-      if(tdecl==NULL)
+      if(cond_decl->getKind() != clang::Decl::Kind::Var){
+        // cout<<"not Var decl"<<endl;
         return true;
-      string conditionEnumName = tdecl->getNameAsString();   //获取枚举变量定义中枚举类型的名称
-       
+      }
+      VarDecl* VD = (VarDecl*)(cond_decl);
+      string conditionEnumName = VD->getType().getCanonicalType().getAsString();   //获取枚举变量定义中枚举类型的名称
+      size_t delim = conditionEnumName.find("enum ");
+      if(delim==string::npos){  //not enum type
+        return true;
+      }
+      cout<<"conditionEnumName after="<<conditionEnumName<<endl;
+      conditionEnumName = conditionEnumName.substr(5);
+      cout<<"conditionEnumName="<<conditionEnumName<<endl;
+
       for(EnumDecl* ED:EDs){
-        string EnumName = ED->getNameAsString();
+        string EnumName = ED->getName();
+        // cout<<"cur EnumName="<<EnumName<<endl;
 
         //判断当前switch的条件枚举变量匹配所有枚举类型声明中的哪个
         if(conditionEnumName==EnumName){
