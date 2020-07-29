@@ -97,10 +97,6 @@ private:
     if (const CXXRecordDecl *CD = dyn_cast<CXXRecordDecl>(D)) {
       return true;
     }
-    if (const EnumDecl *ED = dyn_cast<EnumDecl>(D)) {
-      // cout<<"Enum Decl"<<endl;
-      return true;
-    }
 
     if (!D->hasBody()){
       // cout<<"has no body so false"<<endl;
@@ -121,9 +117,9 @@ private:
       // AST节点中未发现IdentifierInfo相关信息，且inline函数
       //也没有发现 "__inline" 相关字符串，测试时此条删除暂时没有
       //发现对结果的影响，后续若证实无用可移除下面的代码
-      IdentifierInfo *II = FD->getIdentifier();
-      if (II && II->getName().startswith("__inline"))
-        return false;
+      // IdentifierInfo *II = FD->getIdentifier();
+      // if (II && II->getName().startswith("__inline"))
+      //   return false;
     }
     return true;
   }

@@ -48,6 +48,11 @@ public:
         temp = PVD->getType().getCanonicalType().getTypePtr();
         conditionEnumName = PVD->getType().getCanonicalType().getAsString();   //获取枚举变量定义中枚举类型的名称
       }
+      else if(cond_decl->getKind()==clang::Decl::Kind::Field){
+        FieldDecl* FD = (FieldDecl*)(cond_decl);
+        temp = FD->getType().getCanonicalType().getTypePtr();
+        conditionEnumName = FD->getType().getCanonicalType().getAsString();   //获取枚举变量定义中枚举类型的名称
+      }
       else{
         cout<<"not var decl nor parm var decl"<<endl;
         cond_decl->dumpColor();
@@ -55,6 +60,7 @@ public:
       }
       if(!temp->isEnumeralType()){
         cout<<"not enum type"<<endl;
+        temp->dump();
         return true;
       }
       EnumType* et = (EnumType*)(temp);
@@ -78,9 +84,19 @@ public:
       //遍历每个case
       SwitchCase* c = E->getSwitchCaseList();
       while(c!=NULL){
-        auto substmts = c->child_begin()->child_begin()->children();
+        auto substmts_l1 = c->child_begin();
+        if(substmts_l1==c->child_end()){
+          c=c->getNextSwitchCase();
+          continue;
+        }
+        auto substmts_l2 = substmts_l1->child_begin();
+        if(substmts_l2==substmts_l1->child_end()){
+          c=c->getNextSwitchCase();
+          continue;
+        }
+        auto substmts_l3 = substmts_l2->children();
         //遍历当前case子stmt，找到当前case的expr进行处理
-        for(auto substmt: substmts){
+        for(auto substmt: substmts_l3){
           // substmt->dumpColor();
           if(DeclRefExpr* case_expr = dyn_cast<DeclRefExpr>(substmt)){
             ValueDecl* case_decl = case_expr->getDecl();
@@ -135,20 +151,19 @@ void SwitchChecker::check(){
     return;
   }
   cout<<"start Switch check"<<endl;
-  std::vector<ASTFunction *> topLevelFuncs = call_graph->getTopLevelFunctions();
-  cout<<"topLevelFuncs capacity="<<topLevelFuncs.capacity()<<endl;
   unordered_map<string,EnumDecl*> topLevelEnums;
-  // unordered_map<string,EnumDecl*> topLevelEnums = resource->getEnums();
-  // cout<<"enum map capacity="<<topLevelEnums.size()<<endl;
-  // cout<<"All Top Level Enums:"<<endl;
-  // for(auto i:topLevelEnums){
-  //   cout<<i.first<<endl;
-  //   i.second->dumpColor();
+  // std::vector<ASTFunction *> topLevelFuncs = call_graph->getTopLevelFunctions();
+  // cout<<"topLevelFuncs capacity="<<topLevelFuncs.capacity()<<endl;
+  // for(auto i:topLevelFuncs){
+  //   cout<<i->getFullName()<<endl;
   // }
+  std::vector<ASTFunction *> astFunctions = resource->getFunctions();
+  cout<<"ast functions size="<<astFunctions.size()<<endl;
   cout<<"------------------"<<endl;
 
-  for (auto fun : topLevelFuncs) {
-    const FunctionDecl *funDecl = manager->getFunctionDecl(fun);
+  for(auto func:astFunctions){
+    FunctionDecl* funDecl = manager->getFunctionDecl(func);
+    cout<<funDecl->getNameAsString()<<endl;
     auto stmt = funDecl->getBody();
     const ASTContext &ctx = funDecl->getASTContext();
     // stmt->dumpColor();
@@ -161,6 +176,29 @@ void SwitchChecker::check(){
       addDefect(move(d));
     }
   }
+  
+  // unordered_map<string,EnumDecl*> topLevelEnums = resource->getEnums();
+  // cout<<"enum map capacity="<<topLevelEnums.size()<<endl;
+  // cout<<"All Top Level Enums:"<<endl;
+  // for(auto i:topLevelEnums){
+  //   cout<<i.first<<endl;
+  //   i.second->dumpColor();
+  // }
+
+  // for (auto fun : topLevelFuncs) {
+  //   const FunctionDecl *funDecl = manager->getFunctionDecl(fun);
+  //   auto stmt = funDecl->getBody();
+  //   const ASTContext &ctx = funDecl->getASTContext();
+  //   // stmt->dumpColor();
+
+  //   SwitchVisitor visitor(ctx,topLevelEnums);
+  //   cout<<"start traverse stmt"<<endl;
+  //   visitor.TraverseStmt(stmt);
+  //   std::vector<Defect> dfs = visitor.getDefects();
+  //   for (auto &&d : dfs) {
+  //     addDefect(move(d));
+  //   }
+  // }
 }
 
 void SwitchChecker::getEntryFunc() {
