@@ -2,12 +2,15 @@
 #define BASE_COMMON_H
 
 #include <vector>
+#include <unordered_map>
+#include <string>
 
 #include <clang/Frontend/ASTUnit.h>
 
 #include "Config.h"
 
 using namespace clang;
+using namespace std;
 
 std::vector<std::string> initialize(std::string astList);
 
@@ -25,7 +28,7 @@ enum CheckerName {
 std::unique_ptr<ASTUnit> loadFromASTFile(std::string AST);
 
 std::vector<FunctionDecl *> getFunctions(ASTContext &Context,SourceLocation SL);
-std::vector<EnumDecl *> getEnums(ASTContext &Context,SourceLocation SL);
+std::unordered_map<string,EnumDecl *> getEnums(ASTContext &Context,SourceLocation SL);
 std::vector<VarDecl *> getVarDecl(ASTContext &Context);
 std::vector<VarDecl *> getVariables(FunctionDecl *FD);
 

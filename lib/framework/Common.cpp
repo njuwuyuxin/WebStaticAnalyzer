@@ -61,7 +61,8 @@ public:
   }
   bool TraverseEnumDecl(EnumDecl *ED) {
     if (ED && ED->isThisDeclarationADefinition()) {
-      enums.push_back(ED);
+      // ED->dump();
+      enums[ED->getName()]=ED;
     }
     return true;
   }
@@ -77,12 +78,12 @@ public:
 
 
   const std::vector<FunctionDecl *> &getFunctions() const { return functions; }
-  const std::vector<EnumDecl *> &getEnums() const { return enums; }
+  const std::unordered_map<string,EnumDecl *> &getEnums() const { return enums; }
   const std::vector<VarDecl *> &getVarDecl() const { return vars; }
 
 private:
   std::vector<FunctionDecl *> functions;
-  std::vector<EnumDecl *> enums;
+  std::unordered_map<string,EnumDecl *> enums;
   std::vector<VarDecl *> vars;
   SourceLocation AULoc;
 
@@ -211,7 +212,7 @@ std::vector<FunctionDecl *> getFunctions(ASTContext &Context,SourceLocation SL) 
 /**
  * get all enums's decl from an ast context.
  */
-std::vector<EnumDecl *> getEnums(ASTContext &Context,SourceLocation SL) {
+std::unordered_map<string,EnumDecl *> getEnums(ASTContext &Context,SourceLocation SL) {
   ASTFunctionLoad load;
   load.setSourceLoc(SL);
   load.HandleTranslationUnit(Context);

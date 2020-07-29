@@ -26,6 +26,7 @@ public:
   SwitchVisitor(const ASTContext &ctx,unordered_map<string,EnumDecl*> eds) : ctx(ctx),EDs(eds) {}
 
   bool VisitSwitchStmt(SwitchStmt *E) {
+    cout<<"visit one switch begin!"<<endl;
     Expr* conditionExpr = E->getCond();
     if(conditionExpr!=NULL){
       cout<<"visit one switch"<<endl;
@@ -145,12 +146,12 @@ void SwitchChecker::check(){
   std::vector<ASTFunction *> topLevelFuncs = call_graph->getTopLevelFunctions();
   cout<<"topLevelFuncs capacity="<<topLevelFuncs.capacity()<<endl;
   unordered_map<string,EnumDecl*> topLevelEnums = resource->getEnums();
+  cout<<"enum map capacity="<<topLevelEnums.size()<<endl;
   cout<<"All Top Level Enums:"<<endl;
   for(auto i:topLevelEnums){
     cout<<i.first<<endl;
     i.second->dumpColor();
   }
-  cout<<"enum map capacity="<<topLevelEnums.size()<<endl;
   cout<<"------------------"<<endl;
 
   for (auto fun : topLevelFuncs) {
@@ -160,6 +161,7 @@ void SwitchChecker::check(){
     // stmt->dumpColor();
 
     SwitchVisitor visitor(ctx,topLevelEnums);
+    cout<<"start traverse stmt"<<endl;
     visitor.TraverseStmt(stmt);
     std::vector<Defect> dfs = visitor.getDefects();
     for (auto &&d : dfs) {

@@ -20,6 +20,11 @@ std::vector<ASTFile *> ASTResource::getASTFiles() const {
 }
 
 std::unordered_map<string,EnumDecl*> ASTResource::getEnums() const {
+  cout<<"in ASTManager getEnums: start dump all"<<endl;
+  cout<<"enums size="<<Enums.size()<<endl;
+  for(auto i:Enums){
+    i.second->dump();
+  }
   return Enums;
 }
 
@@ -64,9 +69,9 @@ void ASTResource::addEnumDecl(EnumDecl* ED){
   if(Enums.find(EDname)!=Enums.end()){
     cout<<"The same Enum defination!"<<endl;
     cout<<"this enum is "<<EDname<<endl;
-    return;
+    // return;
   }
-  Enums.insert(pair<string,EnumDecl*>(ED->getName(),ED));
+  Enums[ED->getName()]=ED;
 }
 
 void ASTResource::addVarDecl(VarDecl* VD){
@@ -153,10 +158,10 @@ ASTManager::ASTManager(std::vector<std::string> &ASTs, ASTResource &resource,
       }
     }
 
-    std::vector<EnumDecl *> enums =
+    std::unordered_map<string,EnumDecl *> enums =
         common::getEnums(AU->getASTContext(),AU->getStartOfMainFileID());
-    for(EnumDecl *ED: enums){
-      resource.addEnumDecl(ED);
+    for(auto ED: enums){
+      resource.addEnumDecl(ED.second);
     }
 
     std::vector<VarDecl *> vars = 
