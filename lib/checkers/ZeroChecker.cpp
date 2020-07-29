@@ -27,6 +27,7 @@ class ZeroVisitor : public RecursiveASTVisitor<ZeroVisitor> {
 private:
     vector<Defect> defects;
     const FunctionDecl *funDecl;
+    int count;
 public:
   bool VisitBinaryOperator(BinaryOperator *E) {
     if (E->getOpcodeStr() == "/" || E->getOpcodeStr() == "%") {
@@ -70,6 +71,9 @@ public:
             default:break;
           }
         }
+        else{
+          count++;
+        }
     }
     return true;
     }
@@ -77,6 +81,11 @@ public:
   
   void getFun(const FunctionDecl *funDecl){
     this->funDecl = funDecl;
+    count = 0;
+  }
+
+  int getOpCount(){
+    return count;
   }
 
     const vector<Defect> &getDefects() const { return defects; }
@@ -115,10 +124,12 @@ void ZeroChecker::check() {
         ZeroVisitor visitor;
         visitor.getFun(funDecl);
         visitor.TraverseStmt(stmt);
+        int count = visitor.getOpCount();
         //auto dfts = visitor.getDefects();
         //visitFunctionStmts(funDecl->getBody());
         //if(funDecl->getNameAsString() == "testZero1"){
         //cout << "testZero1 start" << endl;
+        if(count == 0) continue;
         analyzer.setFunName(funDecl->getNameAsString());
         analyzer.bindZeroChecker(this);
         analyzer.DealFunctionDecl(funDecl);

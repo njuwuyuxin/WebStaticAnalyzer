@@ -42,6 +42,7 @@ void Analyzer::DecLayer(){
     }
     else{
       new_pv.PosValue.insert(0);
+      new_pv.ck = CANT;
     }
     ValueList.push_back(new_pv);
   }
@@ -153,12 +154,9 @@ void Analyzer::DealIfStmt(IfStmt *ist) {
   VarDecl *new_var = ist->getConditionVariable();
   if (new_var != nullptr) {
     DealVarDecl(new_var);
-    return;
   }
   add_if_layer(ist->getCond());
   VarValue condres = DealRValExpr(ist->getCond());
-  for (auto i : condres.PosValue) {
-  }
   if (condres.PosValue.find(0) != condres.PosValue.end()) {
     if (condres.PosValue.size() == 1) {
       Stmt *elst = ist->getElse();
@@ -181,13 +179,13 @@ void Analyzer::DealIfStmt(IfStmt *ist) {
       bool new_var;
       for (auto i : stored) {
         new_var = true;
-        for (auto j : ValueList) {
-          if (j.var->getNameAsString() == i.var->getNameAsString()) {
+        for(int n=0; n<ValueList.size(); n++) {
+          if (ValueList[n].var->getNameAsString() == i.var->getNameAsString()) {
             new_var = false;
             if (!i.isDefined)
               break;
             for (auto m : i.PosValue) {
-              j.PosValue.insert(m);
+              ValueList[n].PosValue.insert(m);
             }
             break;
           }
@@ -395,8 +393,14 @@ auto Analyzer::DealRValExpr(Expr *expr) -> VarValue {
         initializer_list<uint64_t>{((CharacterLiteral *)expr)->getValue()});
   } else if (stmt_class == Stmt::StringLiteralClass){
     PosResult.var_type = V_CHAR_ARRAY;
-    string str(((StringLiteral *)expr)->getString());
-    PosResult.values = make_shared<StrSet>(initializer_list<string>{str});
+    if(((StringLiteral *)expr)->isUTF8()){
+      string str(((StringLiteral *)expr)->getString());
+      PosResult.values = make_shared<StrSet>(initializer_list<string>{str});
+    }
+    else{
+      string str(((StringLiteral *)expr)->getLength(), '\0');
+      PosResult.values = make_shared<StrSet>(initializer_list<string>{str});
+    }
   } else if (stmt_class == Stmt::ImplicitCastExprClass) {
     auto sub_class =
         (((ImplicitCastExpr *)expr)->getSubExpr())->getStmtClass();
@@ -434,6 +438,10 @@ auto Analyzer::DealRValExpr(Expr *expr) -> VarValue {
   } else if (stmt_class == Stmt::CallExprClass){
     PosResult = DealCallExpr((CallExpr*)expr);
   }
+  if(PosResult.PosValue.size() == 0){
+    PosResult.PosValue.insert(0);
+    PosResult.ck = CANT;
+  }
   return PosResult;
 }
 
@@ -448,6 +456,7 @@ auto Analyzer::DealBinaryOperator(BinaryOperator *E) -> VarValue {
       if (pos != -1) {
         ValueList[pos].PosValue = (DealRValExpr(E->getRHS())).PosValue;
         ValueList[pos].isDefined = true;
+        ValueList[pos].ck = CAN;
         PosResult.PosValue.insert(1);
       } else {
         PosResult.PosValue.insert(0);
@@ -729,6 +738,10 @@ auto Analyzer::DealBinaryOperator(BinaryOperator *E) -> VarValue {
   default:
     break;
   }
+  if(PosResult.PosValue.size() == 0){
+    PosResult.PosValue.insert(0);
+    PosResult.ck = CANT;
+  }
   return PosResult;
 }
 
@@ -762,6 +775,10 @@ auto Analyzer::DealUnaryOperator(UnaryOperator *E) -> VarValue {
   default:
     break;
   }
+  if(PosResult.PosValue.size() == 0){
+    PosResult.PosValue.insert(0);
+    PosResult.ck = CANT;
+  }
   return PosResult;
 }
 
@@ -790,7 +807,12 @@ auto Analyzer::DealDivOp(VarValue v1, VarValue v2, BinaryOperator *E)
     for (auto j : v2.PosValue) {
       if (j == 0) {
         if(!check_white_list(E->getRHS())){
-          report(E, v2);
+          if(v2.ck == CANT){
+            reportw(E);
+          }
+          else{
+            report(E, v2);
+          }
         }
         v3.PosValue.insert(0);
       } else {
@@ -808,7 +830,12 @@ auto Analyzer::DealModOp(VarValue v1, VarValue v2, BinaryOperator *E)
     for (auto j : v2.PosValue) {
       if (j == 0) {
         if(!check_white_list(E->getRHS())){
-          report(E, v2);
+          if(v2.ck == CANT){
+            reportw(E);
+          }
+          else{
+            report(E, v2);
+          }
         }
         v3.PosValue.insert(0);
       } else {

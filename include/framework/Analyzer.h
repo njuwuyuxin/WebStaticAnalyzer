@@ -35,11 +35,16 @@ using namespace clang;
     UNKNOWN
   };
 
+enum canCheck{
+  CAN = 5, CANT
+};
+
   struct VarValue {
     VarDecl *var = nullptr;
     VarType var_type = UNKNOWN;
     bool isDefined = false;
     int layer = 0;
+    canCheck ck;
     std::set<float> PosValue;
     std::shared_ptr<void> values;
   };
@@ -66,6 +71,7 @@ public:
 
   int try_layer;
   std::vector<std::pair<int, std::string>> if_layer;
+  bool isInIfCond;
   void add_try_layer(){
     try_layer = layer;
   }
@@ -183,6 +189,18 @@ private:
   void report(BinaryOperator *E, const VarValue &var) {
     if (zeroChecker != nullptr) {
       zeroChecker->report(E, var.PosValue.size() > 1 ? WARNING : ERROR);
+    }
+  }
+
+  void reportw(BinaryOperator *E) {
+    if (zeroChecker != nullptr) {
+      zeroChecker->report(E, WARNING);
+    }
+  }
+
+   void reporte(BinaryOperator *E) {
+    if (zeroChecker != nullptr) {
+      zeroChecker->report(E, ERROR);
     }
   }
 
