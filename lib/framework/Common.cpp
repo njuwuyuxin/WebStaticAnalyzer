@@ -60,10 +60,10 @@ public:
     return true;
   }
   bool TraverseEnumDecl(EnumDecl *ED) {
-    if (ED && ED->isThisDeclarationADefinition()) {
-      // ED->dump();
-      enums[ED->getName()]=ED;
-    }
+    // if (ED && ED->isThisDeclarationADefinition()) {
+    //   // ED->dump();
+    //   enums[ED->getName()]=ED;
+    // }
     return true;
   }
   bool TraverseVarDecl(VarDecl *VD){
@@ -101,17 +101,14 @@ private:
       // cout<<"Enum Decl"<<endl;
       return true;
     }
-    else{
-      return false;
-    }
 
     if (!D->hasBody()){
-      cout<<"has no body so false"<<endl;
+      // cout<<"has no body so false"<<endl;
       return false;
     }
 
     if (const FunctionDecl *FD = dyn_cast<FunctionDecl>(D)) {
-      cout<<"func decl"<<endl;
+      // cout<<"func decl"<<endl;
       // We skip function template definitions, as their semantics is
       // only determined when they are instantiated.
       if (FD->isDependentContext())

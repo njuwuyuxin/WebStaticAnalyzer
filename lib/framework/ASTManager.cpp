@@ -22,9 +22,9 @@ std::vector<ASTFile *> ASTResource::getASTFiles() const {
 std::unordered_map<string,EnumDecl*> ASTResource::getEnums() const {
   cout<<"in ASTManager getEnums: start dump all"<<endl;
   cout<<"enums size="<<Enums.size()<<endl;
-  for(auto i:Enums){
-    i.second->dump();
-  }
+  // for(auto i:Enums){
+  //   i.second->dump();
+  // }
   return Enums;
 }
 
@@ -158,11 +158,12 @@ ASTManager::ASTManager(std::vector<std::string> &ASTs, ASTResource &resource,
       }
     }
 
-    std::unordered_map<string,EnumDecl *> enums =
-        common::getEnums(AU->getASTContext(),AU->getStartOfMainFileID());
-    for(auto ED: enums){
-      resource.addEnumDecl(ED.second);
-    }
+    // std::unordered_map<string,EnumDecl *> enums =
+    //     common::getEnums(AU->getASTContext(),AU->getStartOfMainFileID());
+    // for(auto ED: enums){
+    //   // ED.second->dump();
+    //   resource.addEnumDecl(ED.second);
+    // }
 
     std::vector<VarDecl *> vars = 
         common::getVarDecl(AU->getASTContext());

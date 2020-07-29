@@ -37,12 +37,15 @@ public:
         return true;
       }
       string conditionEnumName;
+      const clang::Type* temp=NULL;
       if(cond_decl->getKind() == clang::Decl::Kind::Var){
         VarDecl* VD = (VarDecl*)(cond_decl);
+        temp = VD->getType().getCanonicalType().getTypePtr();
         conditionEnumName = VD->getType().getCanonicalType().getAsString();   //获取枚举变量定义中枚举类型的名称
       }
       else if(cond_decl->getKind() == clang::Decl::Kind::ParmVar){
-        ParmVarDecl* PVD = (ParmVarDecl*)(cond_decl);
+        clang::ParmVarDecl* PVD = (clang::ParmVarDecl*)(cond_decl);
+        temp = PVD->getType().getCanonicalType().getTypePtr();
         conditionEnumName = PVD->getType().getCanonicalType().getAsString();   //获取枚举变量定义中枚举类型的名称
       }
       else{
@@ -50,23 +53,12 @@ public:
         cond_decl->dumpColor();
         return true;
       }
-      size_t delim = conditionEnumName.find("enum ");
-      if(delim==string::npos){  //not enum type
+      if(!temp->isEnumeralType()){
         cout<<"not enum type"<<endl;
-        cout<<"cur conditionEnumName="<<conditionEnumName<<endl;
         return true;
       }
-      cout<<"conditionEnumName after="<<conditionEnumName<<endl;
-      conditionEnumName = conditionEnumName.substr(5);
-      cout<<"conditionEnumName="<<conditionEnumName<<endl;
-
-      auto ED_iter = EDs.find(conditionEnumName);
-      if(ED_iter==EDs.end()){
-        cout<<"didn't find ED"<<endl;
-        return true;
-      }
-      cout<<"[SUCCESS]one switch check start"<<endl;
-      EnumDecl* ED = ED_iter->second;
+      EnumType* et = (EnumType*)(temp);
+      EnumDecl* ED = et->getDecl();
       ED->dumpColor();
       //获取枚举定义中所有元素，存放进enumElements
       std::vector<string> enumElements;
@@ -145,13 +137,14 @@ void SwitchChecker::check(){
   cout<<"start Switch check"<<endl;
   std::vector<ASTFunction *> topLevelFuncs = call_graph->getTopLevelFunctions();
   cout<<"topLevelFuncs capacity="<<topLevelFuncs.capacity()<<endl;
-  unordered_map<string,EnumDecl*> topLevelEnums = resource->getEnums();
-  cout<<"enum map capacity="<<topLevelEnums.size()<<endl;
-  cout<<"All Top Level Enums:"<<endl;
-  for(auto i:topLevelEnums){
-    cout<<i.first<<endl;
-    i.second->dumpColor();
-  }
+  unordered_map<string,EnumDecl*> topLevelEnums;
+  // unordered_map<string,EnumDecl*> topLevelEnums = resource->getEnums();
+  // cout<<"enum map capacity="<<topLevelEnums.size()<<endl;
+  // cout<<"All Top Level Enums:"<<endl;
+  // for(auto i:topLevelEnums){
+  //   cout<<i.first<<endl;
+  //   i.second->dumpColor();
+  // }
   cout<<"------------------"<<endl;
 
   for (auto fun : topLevelFuncs) {
