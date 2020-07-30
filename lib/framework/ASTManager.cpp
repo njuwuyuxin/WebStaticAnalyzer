@@ -19,7 +19,12 @@ std::vector<ASTFile *> ASTResource::getASTFiles() const {
   return ASTFiles;
 }
 
-std::vector<EnumDecl *> ASTResource::getEnums() const {
+std::unordered_map<string,EnumDecl*> ASTResource::getEnums() const {
+  cout<<"in ASTManager getEnums: start dump all"<<endl;
+  cout<<"enums size="<<Enums.size()<<endl;
+  // for(auto i:Enums){
+  //   i.second->dump();
+  // }
   return Enums;
 }
 
@@ -60,7 +65,13 @@ ASTVariable *ASTResource::addASTVariable(VarDecl *VD, ASTFunction *F) {
 }
 
 void ASTResource::addEnumDecl(EnumDecl* ED){
-  Enums.push_back(ED);
+  string EDname = ED->getName();
+  if(Enums.find(EDname)!=Enums.end()){
+    cout<<"The same Enum defination!"<<endl;
+    cout<<"this enum is "<<EDname<<endl;
+    // return;
+  }
+  Enums[ED->getName()]=ED;
 }
 
 void ASTResource::addVarDecl(VarDecl* VD){
@@ -130,7 +141,7 @@ ASTManager::ASTManager(std::vector<std::string> &ASTs, ASTResource &resource,
     ASTFile *AF = resource.addASTFile(AST);
     std::unique_ptr<ASTUnit> AU = common::loadFromASTFile(AST);
     std::vector<FunctionDecl *> functions =
-        common::getFunctions(AU->getASTContext());
+        common::getFunctions(AU->getASTContext(),AU->getStartOfMainFileID());
 
     for (FunctionDecl *FD : functions) {
       std::string name = common::getFullName(FD);
@@ -147,11 +158,12 @@ ASTManager::ASTManager(std::vector<std::string> &ASTs, ASTResource &resource,
       }
     }
 
-    std::vector<EnumDecl *> enums =
-        common::getEnums(AU->getASTContext());
-    for(EnumDecl *ED: enums){
-      resource.addEnumDecl(ED);
-    }
+    // std::unordered_map<string,EnumDecl *> enums =
+    //     common::getEnums(AU->getASTContext(),AU->getStartOfMainFileID());
+    // for(auto ED: enums){
+    //   // ED.second->dump();
+    //   resource.addEnumDecl(ED.second);
+    // }
 
     std::vector<VarDecl *> vars = 
         common::getVarDecl(AU->getASTContext());
@@ -266,7 +278,7 @@ void ASTManager::push(std::unique_ptr<ASTUnit> AU) {
   std::string AST = AU->getASTFileName();
 
   const std::vector<FunctionDecl *> &functions =
-      common::getFunctions(AU->getASTContext());
+      common::getFunctions(AU->getASTContext(),AU->getStartOfMainFileID());
   const std::vector<ASTFunction *> &ASTFunctions =
       resource.ASTs[AST]->getFunctions();
 

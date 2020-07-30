@@ -1,5 +1,4 @@
-#include <iostream>
-using namespace std;
+#include "example.h"
 enum WeekEnum {Mon,Tue,Wed};
 enum MonthEnum {Jan,Feb,Mar,Apr,May,June,July};
 
@@ -37,9 +36,10 @@ int TestSwitch(){
 	int a=0;
 	WeekEnum week=Mon;
 	MonthEnum month=Jan;
+	Number num=One;
 	switch(a){
-		case 1: cout<<1<<endl; break;
-		case 2: cout<<2<<endl; break;
+		case 1: a=1; break;
+		case 2: a=2; break;
 	}
 	switch(week){
 		case Mon: a=1;break;
@@ -53,8 +53,12 @@ int TestSwitch(){
 		case July: a=7;break;
 	}
 	switch(int i=1){
-		case 1: cout<<1<<endl; break;
-		case 2: cout<<2<<endl; break;
+		case 1: i=1; break;
+		case 2: i=2; break;
+	}
+	switch(num){
+		case One: a=100;break;
+		case Three: a=200;break;
 	}
 	return 0;
 }
