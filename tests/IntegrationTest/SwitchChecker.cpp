@@ -1,4 +1,5 @@
 #include "example.h"
+#include <iostream>
 enum WeekEnum {Mon,Tue,Wed};
 enum MonthEnum {Jan,Feb,Mar,Apr,May,June,July};
 

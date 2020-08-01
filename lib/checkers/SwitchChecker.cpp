@@ -4,15 +4,6 @@ vector<string> SwitchChecker::Signed = {"short", "int", "long", "long long"};
 vector<string> SwitchChecker::Unsigned = {"unsigned short", "unsigned int", "unsigned long", "unsigned long long"};
 
 static inline void printStmt(const Stmt* stmt, const SourceManager &sm){
-  //string filename = sm.getFilename(stmt->getBeginLoc());
-
-  // string begin = stmt->getBeginLoc().printToString(sm);
-  // cout << begin << endl;
-  // LangOptions LangOpts;
-  // LangOpts.CPlusPlus = true;
-  // stmt->printPretty(outs(), nullptr, LangOpts);
-  // cout << endl;
-
   LangOptions LangOpts;
   LangOpts.CPlusPlus = true;
   stmt->getBeginLoc().print(outs(), sm);
@@ -26,13 +17,13 @@ public:
   SwitchVisitor(const ASTContext &ctx,unordered_map<string,EnumDecl*> eds) : ctx(ctx),EDs(eds) {}
 
   bool VisitSwitchStmt(SwitchStmt *E) {
-    cout<<"visit one switch begin!"<<endl;
+    // cout<<"visit one switch begin!"<<endl;
     Expr* conditionExpr = E->getCond();
     if(conditionExpr!=NULL){
-      cout<<"visit one switch"<<endl;
+      // cout<<"visit one switch"<<endl;
       Decl* cond_decl = conditionExpr->getReferencedDeclOfCallee();
       if(cond_decl==NULL){
-        cout<<"can not get cond decl"<<endl;
+        // cout<<"can not get cond decl"<<endl;
         //如果无法得到条件变量的声明语句，说明条件变量为表达式，不需进行后续分析
         return true;
       }
@@ -54,29 +45,29 @@ public:
         conditionEnumName = FD->getType().getCanonicalType().getAsString();   //获取枚举变量定义中枚举类型的名称
       }
       else{
-        cout<<"not var decl nor parm var decl"<<endl;
-        cond_decl->dumpColor();
+        // cout<<"not var decl nor parm var decl"<<endl;
+        // cond_decl->dumpColor();
         return true;
       }
       if(!temp->isEnumeralType()){
-        cout<<"not enum type"<<endl;
-        temp->dump();
+        // cout<<"not enum type"<<endl;
+        // temp->dump();
         return true;
       }
       EnumType* et = (EnumType*)(temp);
       EnumDecl* ED = et->getDecl();
-      ED->dumpColor();
+      // ED->dumpColor();
       //获取枚举定义中所有元素，存放进enumElements
       std::vector<string> enumElements;
       if(ED==NULL){
-        cout<<"[ERROR]ED is NULL"<<endl;
+        // cout<<"[ERROR]ED is NULL"<<endl;
         return true;
       }
       auto enums = ED->enumerators();
       
       for(auto iter:enums){
         if(iter==NULL){
-          cout<<"cur enum iter is NULL,continue"<<endl;
+          // cout<<"cur enum iter is NULL,continue"<<endl;
           continue;
         }
         enumElements.push_back(iter->getNameAsString());
@@ -150,55 +141,26 @@ void SwitchChecker::check(){
     cout<<"ERROR: call_graph is NULL"<<endl;
     return;
   }
-  cout<<"start Switch check"<<endl;
+  // cout<<"start Switch check"<<endl;
   unordered_map<string,EnumDecl*> topLevelEnums;
-  // std::vector<ASTFunction *> topLevelFuncs = call_graph->getTopLevelFunctions();
-  // cout<<"topLevelFuncs capacity="<<topLevelFuncs.capacity()<<endl;
-  // for(auto i:topLevelFuncs){
-  //   cout<<i->getFullName()<<endl;
-  // }
   std::vector<ASTFunction *> astFunctions = resource->getFunctions();
-  cout<<"ast functions size="<<astFunctions.size()<<endl;
-  cout<<"------------------"<<endl;
+  // cout<<"ast functions size="<<astFunctions.size()<<endl;
+  // cout<<"------------------"<<endl;
 
   for(auto func:astFunctions){
     FunctionDecl* funDecl = manager->getFunctionDecl(func);
-    cout<<funDecl->getNameAsString()<<endl;
+    // cout<<funDecl->getNameAsString()<<endl;
     auto stmt = funDecl->getBody();
     const ASTContext &ctx = funDecl->getASTContext();
     // stmt->dumpColor();
 
     SwitchVisitor visitor(ctx,topLevelEnums);
-    cout<<"start traverse stmt"<<endl;
     visitor.TraverseStmt(stmt);
     std::vector<Defect> dfs = visitor.getDefects();
     for (auto &&d : dfs) {
       addDefect(move(d));
     }
   }
-  
-  // unordered_map<string,EnumDecl*> topLevelEnums = resource->getEnums();
-  // cout<<"enum map capacity="<<topLevelEnums.size()<<endl;
-  // cout<<"All Top Level Enums:"<<endl;
-  // for(auto i:topLevelEnums){
-  //   cout<<i.first<<endl;
-  //   i.second->dumpColor();
-  // }
-
-  // for (auto fun : topLevelFuncs) {
-  //   const FunctionDecl *funDecl = manager->getFunctionDecl(fun);
-  //   auto stmt = funDecl->getBody();
-  //   const ASTContext &ctx = funDecl->getASTContext();
-  //   // stmt->dumpColor();
-
-  //   SwitchVisitor visitor(ctx,topLevelEnums);
-  //   cout<<"start traverse stmt"<<endl;
-  //   visitor.TraverseStmt(stmt);
-  //   std::vector<Defect> dfs = visitor.getDefects();
-  //   for (auto &&d : dfs) {
-  //     addDefect(move(d));
-  //   }
-  // }
 }
 
 void SwitchChecker::getEntryFunc() {
