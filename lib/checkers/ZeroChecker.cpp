@@ -3,6 +3,7 @@
 
 namespace {
 
+//调试用与前几次汇报使用的打印函数，能打印stmt所在的文件内位置与stmt内容
 static inline void printStmt(const Stmt* stmt, const SourceManager &sm){
   string begin = stmt->getBeginLoc().printToString(sm);
   cout << begin << endl;
@@ -12,6 +13,7 @@ static inline void printStmt(const Stmt* stmt, const SourceManager &sm){
   cout << endl;
 }
 
+//报错信息，分为error与warning
 const string DefectInfo[2][2] = {
   {
     "error:操作符'/'的右操作数为0",
@@ -23,11 +25,15 @@ const string DefectInfo[2][2] = {
   }
 };
 
+//调用clang框架中的遍历ast类来进行简单的除0检测
+//此处的情况为除以或模值为0的常数表达式
 class ZeroVisitor : public RecursiveASTVisitor<ZeroVisitor> {
 private:
     vector<Defect> defects;
     const FunctionDecl *funDecl;
     int count;
+    //此处count用于记录当前函数的ast树中是否有不属于简单情况的缺陷，并进行记录
+    //之后会根据count是否为0决定是否对该函数进行数据流分析，以提高检测效率
 public:
   bool VisitBinaryOperator(BinaryOperator *E) {
     if (E->getOpcodeStr() == "/" || E->getOpcodeStr() == "%") {
@@ -36,8 +42,8 @@ public:
         Expr::EvalResult rst;
         Expr::ConstExprUsage Usage = Expr::EvaluateForCodeGen;
         if(ro->EvaluateAsConstantExpr(rst, Usage, funDecl->getASTContext())){
-          //string begin = ro->getBeginLoc().printToString(funDecl->getASTContext().getSourceManager());
-          //cout << begin << endl;
+          //如果除数是常量表达式，可以根据api来直接获得其值，存储在rst中
+          //之后只需要判断类型再取出值就可以了
           auto &sm = funDecl->getASTContext().getSourceManager();
           APValue::ValueKind vtp = rst.Val.getKind();
           switch(vtp){
@@ -73,6 +79,7 @@ public:
         }
         else{
           count++;
+          //出现了除号或模号却不属于简单情况，这样需要进行数据流分析，count++记录
         }
     }
     return true;
@@ -113,6 +120,8 @@ void ZeroChecker::check() {
         }
       }
     }
+    //通过广度优先搜索，对函数遍历顺序进行简单的排序
+    //尽量做到函数调用图中位于子结点的函数先于父节点遍历
     Analyzer analyzer;
     for (int i = reverse_order_visit.size()-1; i>-1; i--) {
       auto fun = reverse_order_visit[i];
@@ -125,10 +134,7 @@ void ZeroChecker::check() {
         visitor.getFun(funDecl);
         visitor.TraverseStmt(stmt);
         int count = visitor.getOpCount();
-        //auto dfts = visitor.getDefects();
-        //visitFunctionStmts(funDecl->getBody());
-        //if(funDecl->getNameAsString() == "testZero1"){
-        //cout << "testZero1 start" << endl;
+        //对简单情况进行检索，之后获取count值并决定是否进行进一步分析
         if(count == 0) continue;
         analyzer.setFunName(funDecl->getNameAsString());
         analyzer.bindZeroChecker(this);

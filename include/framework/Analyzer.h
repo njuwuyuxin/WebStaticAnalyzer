@@ -41,18 +41,31 @@ enum canCheck{
 
   struct VarValue {
     VarDecl *var = nullptr;
+    //变量定义
+
     VarType var_type = UNKNOWN;
+
     bool isDefined = false;
+
     int layer = 0;
+    //变量所在的层数，用于变量的产生与消亡，以及if与try子语句中安全警报的判断
+    //当进入if、try、for等语句所在的子模块时，layer会增大，反之当退出时则会减小
+
     canCheck ck;
+    //记录该变量是否可以被数据流分析所识别，用于判断警报类型
+
     std::set<float> PosValue;
+    //变量可能取值，由于尽量提高效率与简便，统一存储为float类型
+
     std::shared_ptr<void> values;
   };
+  //记录变量的一些属性
 
 class Analyzer {
 public:
 
   std::map<std::string, std::set<float>> fun_ret_vals;
+  //记录函数返回值，方便在调用函数时直接查表
   void print_fun_vals(){
     std::map<std::string, std::set<float>>::iterator iter = fun_ret_vals.begin();
     for(;iter!=fun_ret_vals.end();iter++){
@@ -138,6 +151,9 @@ public:
     }
     return false;
   }
+  //变量所处的层数，用于if与try语句块的判断
+  //在if语句块且在if的条件语句中已经判断过不为0的变量不会触发警报
+  //在try语句块的变量不会触发警报
 
   int layer;//记录嵌套层数，用于除模0的安全检测与局部变量增删
   void bindZeroChecker(BasicChecker *checker) { zeroChecker = checker; }
@@ -177,12 +193,14 @@ public:
   void DealCXXCatchStmt(CXXTryStmt *cast);
   void IncLayer();
   void DecLayer();
+  //数据流分析的基本模式，利用递归调用，逐层将表层的stmt一步步分解，直到处理最底层的stmt
 
 private:
   using UIntSet = std::set<uint64_t>;
   using StrSet = std::set<std::string>;
 
   std::vector<VarValue> ValueList;
+  //记录当前函数中所有变量的状态
   BasicChecker *zeroChecker = nullptr;
   BasicChecker *charArrayChecker = nullptr;
 
@@ -203,6 +221,7 @@ private:
       zeroChecker->report(E, ERROR);
     }
   }
+  //警报函数，用于在出现缺陷或有可能出现时将错误报告出来
 
   void report(ArraySubscriptExpr *E, const VarValue &var) {
     if (charArrayChecker != nullptr) {
@@ -223,6 +242,7 @@ private:
     }
     return true;
   }
+  //用于switch语句块时，判断当前case的值是否包含switch条件表达式取值
 
   int FindVarInList(VarDecl *waitToFind) {
     if (waitToFind == nullptr)
@@ -235,6 +255,7 @@ private:
     }
     return -1;
   }
+  //在变量表中找到对应的变量，返回索引
 
   VarValue DealRValExpr(Expr *expr);
   VarValue DealBinaryOperator(BinaryOperator *E);
@@ -244,7 +265,9 @@ private:
   VarValue DealModOp(VarValue v1, VarValue v2, BinaryOperator *E);
   VarValue DealArraySubscriptExpr(ArraySubscriptExpr *expr);
   VarValue DealCallExpr(CallExpr *E);
+  //与上面的stmt处理语句类似，只不过这些为expr处理语句，存在返回值
 
+  //下面的为二元/一元操作符处理语句
   VarValue DealAddOp(VarValue v1, VarValue v2) {
     VarValue v3;
     for (auto i : v1.PosValue) {
