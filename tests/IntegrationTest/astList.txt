@@ -1,5 +1,5 @@
 ZeroChecker.ast
 LoopChecker.ast
-CharArrayBound.ast
 SwitchChecker.ast
 CompareChecker.ast
+CharArrayBound.ast

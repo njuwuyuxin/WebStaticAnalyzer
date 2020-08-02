@@ -127,6 +127,7 @@ void ZeroChecker::check() {
         // ValueList.clear();
         const FunctionDecl *funDecl = manager->getFunctionDecl(fun);
         getFunDecl(funDecl);
+        string cname(funDecl->getNameAsString());
         auto stmt = funDecl->getBody();
         if(stmt == nullptr) continue;
         ZeroVisitor visitor;
@@ -142,8 +143,6 @@ void ZeroChecker::check() {
         analyzer.setFunName(funDecl->getNameAsString());
         analyzer.bindZeroChecker(this);
         analyzer.DealFunctionDecl(funDecl);
-        //cout << "testZero1 end" << endl;
-        //}
     }
     //analyzer.print_fun_vals();
     // defectsClearSamePlace();
