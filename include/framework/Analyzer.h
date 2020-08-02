@@ -79,8 +79,9 @@ public:
   }
 
   std::string funname;
+  const FunctionDecl* funDecl;
   void setFunName(std::string name){funname = name;}
-  bool istestZero(){ return funname == "testZero1"; }
+  bool istestZero(){ return funname == "testZero"; }
 
   int try_layer;
   std::vector<std::pair<int, std::string>> if_layer;
@@ -137,13 +138,12 @@ public:
       std::cout << "variable " << i.second << " in layer " << i.first << std::endl;
     }
   }
-  bool check_white_list(Expr* expr){
+  bool check_white_list(VarValue v2){
     if(layer >= try_layer){
       return true;
     }
-    VarValue tmp = DealRValExpr(expr);
-    if(tmp.var == nullptr) return false;
-    std::string cname(tmp.var->getNameAsString());
+    if(v2.var == nullptr) return false;
+    std::string cname(v2.var->getNameAsString());
     for(auto i:if_layer){
       if(cname == i.second && layer >= i.first){
         return true;

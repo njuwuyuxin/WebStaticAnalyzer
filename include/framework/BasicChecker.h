@@ -24,6 +24,14 @@ public:
   virtual void report(const Expr *expr, int level) {}
   void addDefect(const Defect &d) { defects.insert(d); }
   const DefectSet &getDefects() const { return defects; }
+  bool isInSameLocation(const Defect &d){
+    for(auto i:defects){
+      if(get<0>(i) == get<0>(d)){
+        return true;
+      }
+    }
+    return false;
+  }
 
 private:
   DefectSet defects;

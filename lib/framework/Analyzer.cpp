@@ -25,6 +25,7 @@ void Analyzer::DecLayer(){
 
 //dealfuncitondecl：处理函数定义
  void Analyzer::DealFunctionDecl(const FunctionDecl *fde){
+   funDecl = fde;
    ValueList.clear();
   VarValue Posval;
   layer = 0;
@@ -392,10 +393,11 @@ void Analyzer::DealCXXTryStmt(CXXTryStmt *tyst){
 
 //dealrvalexpr：处理expr表达式，与dealstmt类似，通过递归调用子函数得到返回值
 auto Analyzer::DealRValExpr(Expr *expr) -> VarValue {
-  auto stmt_class = expr->getStmtClass();
   VarValue PosResult;
+  auto stmt_class = expr->getStmtClass();
   if (stmt_class == Stmt::ParenExprClass) {
     PosResult = DealRValExpr(((ParenExpr *)expr)->getSubExpr());
+    return PosResult;
   } else if (stmt_class == Stmt::ConstantExprClass) {
     ConstantExpr *cex = (ConstantExpr *)expr;
     switch (cex->getAPValueResult().getKind()) {
@@ -412,24 +414,28 @@ auto Analyzer::DealRValExpr(Expr *expr) -> VarValue {
     default: {
     } break;
     }
+    return PosResult;
   } 
   //处理整形常量
   else if (stmt_class == Stmt::IntegerLiteralClass) {
     PosResult.var_type = V_INT;
     PosResult.PosValue.insert(
         ((IntegerLiteral *)expr)->getValue().getLimitedValue());
+    return PosResult;
   } 
   //处理浮点型常量
   else if (stmt_class == Stmt::FloatingLiteralClass) {
     PosResult.var_type = V_FLOAT;
     PosResult.PosValue.insert(
         ((FloatingLiteral *)expr)->getValue().convertToDouble());
+    return PosResult;
   } 
   //处理字符型常量
   else if (stmt_class == Stmt::CharacterLiteralClass) {
     PosResult.var_type = V_CHAR;
     PosResult.values = make_shared<UIntSet>(
         initializer_list<uint64_t>{((CharacterLiteral *)expr)->getValue()});
+    return PosResult;
   } 
   //处理字符串型常量
   else if (stmt_class == Stmt::StringLiteralClass){
@@ -442,6 +448,7 @@ auto Analyzer::DealRValExpr(Expr *expr) -> VarValue {
       string str(((StringLiteral *)expr)->getLength(), '\0');
       PosResult.values = make_shared<StrSet>(initializer_list<string>{str});
     }
+    return PosResult;
     //前面的class为一些固定值的语句，直接调用clang方法得到值并返回即可
   } 
   else if (stmt_class == Stmt::ImplicitCastExprClass) {
@@ -459,12 +466,10 @@ auto Analyzer::DealRValExpr(Expr *expr) -> VarValue {
         PosResult.ck = CANT;
       }
       //如果是变量从左值转换为右值，则查找变量状态表并进行相应返回值处理
-    } else if (sub_class == Stmt::UnaryOperatorClass) {
-      PosResult = DealUnaryOperator(
-          (UnaryOperator *)(((ImplicitCastExpr *)expr)->getSubExpr()));
     } else {
       return DealRValExpr(((ImplicitCastExpr *)expr)->getSubExpr());
     }
+    return PosResult;
   } else if (stmt_class == Stmt::DeclRefExprClass) {
     DeclRefExpr *sub = (DeclRefExpr *)expr;
     int pos = FindVarInList((VarDecl *)(sub->getDecl()));
@@ -474,26 +479,32 @@ auto Analyzer::DealRValExpr(Expr *expr) -> VarValue {
       PosResult.PosValue.insert(0);
       PosResult.ck = CANT;
     }
+    return PosResult;
   } 
   //处理双目操作符
   else if (stmt_class == Stmt::BinaryOperatorClass) {
     PosResult = DealBinaryOperator((BinaryOperator *)expr);
+    return PosResult;
   } 
   //处理单目操作符
   else if (stmt_class == Stmt::UnaryOperatorClass) {
     PosResult = DealUnaryOperator((UnaryOperator *)expr);
+    return PosResult;
   } 
   //处理条件判断操作符（？：）
   else if (stmt_class == Stmt::ConditionalOperatorClass) {
     PosResult = DealConditionalOperator((ConditionalOperator *)expr);
+    return PosResult;
   } 
   //处理字符串相关
   else if (stmt_class == Stmt::ArraySubscriptExprClass) {
     PosResult = DealArraySubscriptExpr((ArraySubscriptExpr *)expr);
+    return PosResult;
   } 
   //处理函数返回值
   else if (stmt_class == Stmt::CallExprClass){
     PosResult = DealCallExpr((CallExpr*)expr);
+    return PosResult;
   }
   if(PosResult.PosValue.size() == 0){
     PosResult.PosValue.insert(0);
@@ -558,9 +569,8 @@ auto Analyzer::DealBinaryOperator(BinaryOperator *E) -> VarValue {
           }
         }
       }
-    } else {
+    } 
       return PosResult;
-    }
   } break;
   case BO_Add: {
     return DealAddOp(DealRValExpr(E->getLHS()), DealRValExpr(E->getRHS()));
@@ -572,7 +582,7 @@ auto Analyzer::DealBinaryOperator(BinaryOperator *E) -> VarValue {
     return DealMulOp(DealRValExpr(E->getLHS()), DealRValExpr(E->getRHS()));
   } break;
   case BO_Div: {
-    return DealDivOp(DealRValExpr(E->getLHS()), DealRValExpr(E->getRHS()), E);
+    return DealDivOp(DealRValExpr(E->getLHS()),DealRValExpr(E->getRHS()), E);
   } break;
   case BO_Rem: {
     return DealModOp(DealRValExpr(E->getLHS()), DealRValExpr(E->getRHS()), E);
@@ -591,7 +601,7 @@ auto Analyzer::DealBinaryOperator(BinaryOperator *E) -> VarValue {
   } break;
   case BO_LOr: {
     return DealLogOrOp(DealRValExpr(E->getLHS()), DealRValExpr(E->getRHS()));
-  }
+  } break;
   case BO_Shl:{
     return DealShlOp(DealRValExpr(E->getLHS()), DealRValExpr(E->getRHS()));
   }break;
@@ -814,28 +824,28 @@ auto Analyzer::DealUnaryOperator(UnaryOperator *E) -> VarValue {
   VarValue PosResult = DealRValExpr(E->getSubExpr());
   switch (E->getOpcode()) {
   case UO_PostInc: {
-    PosResult = DealPostInc(PosResult);
+    return DealPostInc(PosResult);
   } break;
   case UO_PostDec: {
-    PosResult = DealPostDec(PosResult);
+    return DealPostDec(PosResult);
   } break;
   case UO_PreInc: {
-    PosResult = DealPreInc(PosResult);
+    return DealPreInc(PosResult);
   } break;
   case UO_PreDec: {
-    PosResult = DealPreDec(PosResult);
+    return DealPreDec(PosResult);
   } break;
   case UO_Plus: {
-    PosResult = DealPlus(PosResult);
+    return DealPlus(PosResult);
   } break;
   case UO_Minus: {
-    PosResult = DealMinus(PosResult);
+    return DealMinus(PosResult);
   } break;
   case UO_Not: {
-    PosResult = DealNot(PosResult);
+    return DealNot(PosResult);
   } break;
   case UO_LNot: {
-    PosResult = DealLogNot(PosResult);
+    return DealLogNot(PosResult);
   } break;
   default:
     break;
@@ -874,7 +884,7 @@ auto Analyzer::DealDivOp(VarValue v1, VarValue v2, BinaryOperator *E)
   for (auto i : v1.PosValue) {
     for (auto j : v2.PosValue) {
       if (j == 0) {
-        if(!check_white_list(E->getRHS())){
+        if(!check_white_list(v2)){
           //出现除0错误，判断当前右值是否在try或if的条件表达式里有记录，没有的话就进行报告
           if(v2.ck == CANT){
             //本分析无法处理的语句块，不确定一定为0，报警告
@@ -902,7 +912,7 @@ auto Analyzer::DealModOp(VarValue v1, VarValue v2, BinaryOperator *E)
   for (auto i : v1.PosValue) {
     for (auto j : v2.PosValue) {
       if (j == 0) {
-        if(!check_white_list(E->getRHS())){
+        if(!check_white_list(v2)){
           if(v2.ck == CANT){
             reportw(E);
           }

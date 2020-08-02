@@ -49,7 +49,6 @@ public:
           switch(vtp){
             case APValue::Int:{
               int64_t val = rst.Val.getInt().getExtValue();
-              //cout <<val<<endl;
               if(val == 0){
                 string location = ro->getBeginLoc().printToString(sm);
                 string info = "error:操作符"+opt+"的右操作数是结果为0的常数表达式";
@@ -133,6 +132,10 @@ void ZeroChecker::check() {
         ZeroVisitor visitor;
         visitor.getFun(funDecl);
         visitor.TraverseStmt(stmt);
+        auto dfts = visitor.getDefects();
+        for(auto df:dfts){
+          addDefect(df);
+        }
         int count = visitor.getOpCount();
         //对简单情况进行检索，之后获取count值并决定是否进行进一步分析
         if(count == 0) continue;
@@ -153,7 +156,10 @@ void ZeroChecker::report(const Expr *expr, int level) {
   auto &sm = funDecl->getASTContext().getSourceManager();
   string location = ro->getBeginLoc().printToString(sm);
   string info = DefectInfo[level][opt];
-  addDefect(make_tuple(location,info));
+  auto tmp = make_tuple(location,info);
+  if(!isInSameLocation(tmp)){
+    addDefect(tmp);
+  }
 }
 /*
 void ZeroChecker::visitFunctionStmts(Stmt *stmt){
